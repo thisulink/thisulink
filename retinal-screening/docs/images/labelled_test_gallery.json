@@ -1,0 +1,92 @@
+[
+  {
+    "image_id": "b69c224edd6e",
+    "true_grade": 0,
+    "predicted_grade": 0,
+    "referable_probability": 0.0622
+  },
+  {
+    "image_id": "e04f3c6619a3",
+    "true_grade": 0,
+    "predicted_grade": 0,
+    "referable_probability": 0.0135
+  },
+  {
+    "image_id": "fce73678f650",
+    "true_grade": 0,
+    "predicted_grade": 0,
+    "referable_probability": 0.0272
+  },
+  {
+    "image_id": "4da2961e62fe",
+    "true_grade": 1,
+    "predicted_grade": 1,
+    "referable_probability": 0.0463
+  },
+  {
+    "image_id": "80d24897669f",
+    "true_grade": 1,
+    "predicted_grade": 1,
+    "referable_probability": 0.0455
+  },
+  {
+    "image_id": "8ff863f8874f",
+    "true_grade": 1,
+    "predicted_grade": 2,
+    "referable_probability": 0.6507
+  },
+  {
+    "image_id": "45ae04cfde5d",
+    "true_grade": 2,
+    "predicted_grade": 2,
+    "referable_probability": 0.7391
+  },
+  {
+    "image_id": "ae1344610ebe",
+    "true_grade": 2,
+    "predicted_grade": 2,
+    "referable_probability": 0.8554
+  },
+  {
+    "image_id": "d8cdb7d7283a",
+    "true_grade": 2,
+    "predicted_grade": 1,
+    "referable_probability": 0.1254
+  },
+  {
+    "image_id": "8201cab8322d",
+    "true_grade": 3,
+    "predicted_grade": 4,
+    "referable_probability": 0.7327
+  },
+  {
+    "image_id": "b019a49787c1",
+    "true_grade": 3,
+    "predicted_grade": 4,
+    "referable_probability": 0.8182
+  },
+  {
+    "image_id": "c9ea9d5eab65",
+    "true_grade": 3,
+    "predicted_grade": 2,
+    "referable_probability": 0.9208
+  },
+  {
+    "image_id": "7efc91af4ae6",
+    "true_grade": 4,
+    "predicted_grade": 3,
+    "referable_probability": 0.9573
+  },
+  {
+    "image_id": "a182b5b191de",
+    "true_grade": 4,
+    "predicted_grade": 2,
+    "referable_probability": 0.9817
+  },
+  {
+    "image_id": "cb547e723a16",
+    "true_grade": 4,
+    "predicted_grade": 4,
+    "referable_probability": 0.9947
+  }
+]
