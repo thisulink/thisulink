@@ -147,20 +147,35 @@ sequenceDiagram
 
 ---
 
-### 3.2 The 6-Day Triage Cycle Engine
+### 3.2 AI-Driven Vital Reminder System
+
+Rather than a passive UI timer, THISULINK's clinical AI actively monitors each patient's measurement cadence and proactively reminds them to take their vitals through personalized local notifications.
+
+#### Reminder Categories
+
+| Vital | Trigger Condition | Example Notification |
+|---|---|---|
+| **Foot Scan (Plantar SWE)** | No scan logged for the current cycle day | *"Good morning Ravi! Day 3 of your 6-day cycle. Time for your foot scan."* |
+| **Post-Meal Glucose** | Meal logged but no glucose reading within 2 hours | *"It's been 2 hours since your meal log. Please record your post-meal glucose."* |
+| **Retinal Photo** | Retinal image due on Day 1 or Day 4 of cycle | *"Your retinal photograph is due today. Open THISULINK to complete your cycle."* |
+| **Missed Day Follow-up** | No activity detected for > 26 hours | *"We missed you yesterday. Your 6-day cycle continues — tap to resume."* |
+
+#### Delivery Architecture
 
 ```mermaid
-stateDiagram-v2
-    [*] --> not_started
-    not_started --> in_progress: First valid Plantar SWE or Retinal scan
-    not_started --> invalid: Contact preload or optical quality rejected
-    invalid --> in_progress: Quality-compliant scan performed
-    in_progress --> ready: Valid Plantar SWE + Valid Retinal Photo + Plausible Glucose
-    ready --> [*]: Specialist Tele-Consultation Released
+flowchart LR
+    A["WorkManager Poll\n(15-min floor, Android)"] --> B["Check: Last Measurement Timestamps\nvs. Cycle Day Schedule"]
+    B --> C{Gap Detected?}
+    C -- Yes --> D["Build Personalised\nReminder Payload"]
+    D --> E["flutter_local_notifications\n(No FCM, No Push Cloud)"]
+    E --> F["Patient Device\nNotification Tray"]
+    C -- No --> G["Sleep until\nnext poll"]
 ```
 
-- **`ready` Status**: Indicates that all pre-requisite physical measurements (Plantar SWE, Retinal image, and blood glucose) have successfully passed quality gates.
-- **Priority Guidance**: The home screen displays exactly **one** primary call to action. Plantar SWE and Retinal scanning always take precedence over manual glucose entry because hardware-assisted exams require specific setup.
+- **No cloud dependency**: All reminder logic runs on-device via WorkManager (Android) and `BGTaskScheduler` (iOS). No Firebase Cloud Messaging or any third-party push service is used.
+- **Personalization**: The AI adjusts reminder timing based on the patient's historical measurement habits (e.g., if the patient consistently scans at 8 AM, the reminder fires at 7:50 AM).
+- **Cycle-aware**: The reminder engine knows which day (1–6) the patient is on and which vitals are mandatory vs. optional on that day, avoiding notification fatigue.
+- **ASHA-relay fallback**: If the patient has not acknowledged a reminder within 4 hours, the ASHA worker linked to that patient receives a relay alert on their own device.
 
 ---
 
