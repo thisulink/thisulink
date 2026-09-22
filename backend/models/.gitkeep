@@ -1,0 +1,9 @@
+# ONNX model weights are not committed to Git.
+# Download separately and place here:
+#   thisulink_retinal_efficientnet_b0_int8.onnx
+#
+# To export from the trained PyTorch checkpoint:
+#   python scripts/export_onnx.py \
+#     --checkpoint checkpoints/thisulink_retinal_efficientnet_b0.pt \
+#     --output backend/models/thisulink_retinal_efficientnet_b0_int8.onnx \
+#     --quantise int8
