@@ -185,6 +185,42 @@ This system is a **research and screening-assistance prototype**. It is not a ce
 
 ---
 
+## Prior-Art Differentiation
+
+THISULINK is positioned against two categories of existing clinical instruments used in India for diabetic complication screening.
+
+### Foot / Neuropathy Assessment
+
+| Device | What it measures | Typical India price | Key limitation vs. THISULINK |
+|---|---|---|---|
+| **Biothesiometer** (VPT) | Single-frequency (128 Hz) vibration perception threshold — large-fibre neuropathy only | ₹10,500–₹40,000 | No subclinical glycation stiffness detection; patient reports sensation subjectively; no thermal channel |
+| **10 g Semmes-Weinstein Monofilament** | Pressure threshold — 10 sites | < ₹500 | No electronics, no digital output; 66–77 % sensitivity; detects established neuropathy only |
+| **THISULINK SWE Probe** | Multi-frequency (10–300 Hz) shear-wave elastography → Young's modulus E, shear-wave speed c_s; tissue class A/B/C + MLX90621 plantar thermometry | ₹12,000–₹18,000 (BOM estimate) | **Adds**: subclinical Class B detection, thermal asymmetry flag, BLE digital output, automated preload interlock |
+
+**Key differentiator**: The biothesiometer and monofilament detect established peripheral neuropathy (large-fibre loss). THISULINK adds a third detection layer — **subclinical glycation stiffening** (Tissue Class B) — which is mechanistically upstream of fibre loss and not detectable by VPT or monofilament. This capability is simulation-validated (MATLAB Experiments 01–02) and pending human-subject confirmation.
+
+### Retinal Screening
+
+| Device / Service | Approach | Typical India access | Key limitation vs. THISULINK |
+|---|---|---|---|
+| **Remidio FOP (Fundus-on-Phone)** | Smartphone non-mydriatic fundus camera, grades by ophthalmologist telemedicine | ₹4,12,000 per unit | Hardware cost prohibitive for PHC; no AI on-device grading; no integration with foot/vitals data |
+| **Aravind / Sankara telemedicine** | Fundus photo → ophthalmologist grading | City-based hub and spoke | Rural patient must travel to hub; no field-worker deployment |
+| **THISULINK Retinal Module** | Smartphone + 20D adapter, EfficientNet-B0 AI grading (AUC 0.976 on APTOS 2019 test set), on-device ONNX INT8 offline | Smartphone + ₹500–₹1,200 lens adapter | AI-only (no ophthalmologist in loop at capture time); external validation pending |
+
+**Key differentiator**: Remidio FOP costs ₹4,12,000. THISULINK's retinal module uses the health worker's existing smartphone plus a low-cost 20D adapter and runs AI inference on-device when offline — reducing hardware cost by ~99 %. The trade-off is that AI grading replaces (but does not yet match) a trained ophthalmologist's reading at the point of care; a telemedicine ophthalmologist review is still required for Orange/Red triage cases.
+
+### Vitals Monitor
+
+| Device | Approach | THISULINK equivalent |
+|---|---|---|
+| OMRON / A&D digital BP monitor | Oscillometric cuff | PPG-based cuffless BP (IEEE JBHI 2025, PMID 40030275) — research stage, not validated for regulatory submission |
+| Glucometer (Accu-Chek, OneTouch) | Finger-prick electrochemical | PPG-based non-invasive glucose — research stage only |
+
+> [!IMPORTANT]
+> PPG-based cuffless BP and non-invasive glucose are **research-stage methods**. They are not approved as replacements for cuff BP or glucometer readings. THISULINK presents them as supplementary indicators, not primary diagnostic measurements.
+
+---
+
 ## License
 
 MIT — see [`LICENSE`](LICENSE)

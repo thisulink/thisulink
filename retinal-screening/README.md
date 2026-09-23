@@ -442,3 +442,80 @@ The codebase also contains a larger **multi-task reference model** (`configs/bas
 - **ASHA relay is one-directional.** The ASHA worker receives a relay alert for unacknowledged reminders but cannot currently override a triage grade.
 
 Research protocol, evidence rules, and the model card are in [`docs/RESEARCH_PROTOCOL.md`](docs/RESEARCH_PROTOCOL.md), [`docs/RESULTS_CONTRACT.md`](docs/RESULTS_CONTRACT.md).
+
+---
+
+## 10. External Retinal Validation Status
+
+### 10.1 Internal Test Results (APTOS 2019 — Confirmed)
+
+All published metrics are from the **677-image held-out test split** of APTOS 2019. These images were never seen during training or checkpoint selection.
+
+| Metric | EfficientNet-B0 (THISULINK) |
+|---|---|
+| Quadratic Weighted Kappa (QWK) | **0.860** (95 % CI 0.828–0.888) |
+| ROC-AUC (referable DR) | **0.976** |
+| Sensitivity at threshold 0.50 | 79.9 % |
+| Specificity at threshold 0.50 | 96.3 % |
+| Expected Calibration Error (ECE) | 0.046 |
+
+Reference dataset: APTOS 2019 Blindness Detection, Aravind Eye Hospital, rural India. Clinically labelled by ophthalmologists on ICDR 0–4 scale. Referable threshold (grade ≥ 2) follows **Raman et al., *Indian Journal of Ophthalmology*, 2021, PMC 7942107**.
+
+### 10.2 External Dataset Validation — NOT YET DONE
+
+> [!IMPORTANT]
+> **External validation has not been completed.** Performance on datasets other than the internal APTOS 2019 split is unknown. The following datasets are identified as the next validation targets:
+
+| Dataset | Reason | Status |
+|---|---|---|
+| **IDRiD** (Indian Diabetic Retinopathy Image Dataset, PMID 31247084) | Indian hospital images; pixel-level lesion annotations allow lesion-supervised fine-tuning | ⬜ Not started — dataset access pending |
+| **Messidor-2** | European fundus camera standard; tests camera-domain shift | ⬜ Not started |
+| **DRIVE** | Vessel segmentation benchmark — needed for vessel-head activation | ⬜ Not started |
+| **Hospital partner dataset** | Real smartphone (not desktop fundus camera) captures; critical for THISULINK deployment path | ⬜ Not started — partnership TBD |
+
+> [!NOTE]
+> AUC typically drops 3–15 percentage points on cross-dataset evaluation due to camera and population differences. Results from the APTOS internal split should not be extrapolated to other settings until external validation is complete.
+
+### 10.3 Smartphone Camera Validation — NOT YET DONE
+
+All APTOS 2019 images were captured on desktop fundus cameras. The THISULINK Flutter app uses a smartphone camera with an add-on 20D lens adapter — a different imaging modality. Separate validation on smartphone-captured fundus images is required before any clinical deployment claim.
+
+---
+
+## 11. Evidence-Backed Impact Metrics
+
+> [!NOTE]
+> The before/after impact figures below are **modelled projections** derived from published gap data and THISULINK's three-modality design. They are not outcomes from a clinical trial. They are presented to quantify the unmet need, not to claim proven efficacy.
+
+### 11.1 Retinal Screening Access
+
+| Metric | Before THISULINK (current state) | With THISULINK (projection) |
+|---|---|---|
+| Rural diabetic patients with retinal screening access | **~11 %** | **~78 %** |
+| Fundus-camera access in rural PHCs | < 5 % of facilities | Replaced by smartphone + 20D adapter |
+| Time to ophthalmologist referral | Weeks (travel, cost) | 48 h (telemedicine, Orange triage) |
+
+**Gap basis**: Raman et al., *Indian Journal of Ophthalmology*, 2021 (PMC 7942107) — only 9.8 % of diabetic patients in rural India received retinal screening. NHP India 2022 reports 11 % eye-care utilisation in rural diabetes cohorts.
+
+### 11.2 Plantar Foot / Neuropathy Screening Access
+
+| Metric | Before THISULINK | With THISULINK (projection) |
+|---|---|---|
+| Rural diabetic patients with plantar neuropathy screening | **~8 %** | **~85 %** |
+| Available tool at PHC level | 10 g monofilament (66–77 % sensitivity, no subclinical detection) | THISULINK SWE probe (subclinical Class B detection) |
+| Annual diabetes-related amputations (India) | **~70,000** | **~10,500** (projected 85 % reduction if early detection rate achieved) |
+
+**Gap basis**: Mohan et al., *Indian Journal of Medical Research*, 2018 — estimated 8 % access to neuropathy assessment in rural India. Amputation projection uses IDF Diabetes Atlas 2023 estimate of 70,000 annual lower-limb amputations in India; 85 % reduction corresponds to the upper bound of published early-intervention studies (Lavery et al., *Diabetes Care*, 2004, PMID 15504999).
+
+> [!CAUTION]
+> The amputation reduction figure (85 %) is an aspirational upper-bound projection, not a demonstrated outcome. It must not be presented as a guaranteed result. Actual reduction will depend on health-worker training, patient adherence, referral chain responsiveness, and clinical follow-through — none of which have been measured in a THISULINK pilot.
+
+### 11.3 Vitals Monitoring (BP + Glucose)
+
+| Metric | Current state | THISULINK |
+|---|---|---|
+| Daily BP self-monitoring in rural diabetics | < 15 % compliance | Targeted via daily AI reminder (once per day) |
+| Glucose self-monitoring | Finger-prick only; ~30 % rural access | PPG-based non-invasive screening (research stage, not validated) |
+
+**Reference for PPG-based BP**: Shyam et al., *IEEE Journal of Biomedical and Health Informatics*, 2025, PMID 40030275.
+

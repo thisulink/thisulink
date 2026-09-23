@@ -223,3 +223,136 @@ Every hardware parameter in this document traces back to a simulation experiment
 | 120-patient multimodal triage | Experiment 12 |
 
 See [`platform matlab simulation and proofs/README.md`](../platform%20matlab%20simulation%20and%20proofs/README.md) for full simulation details.
+
+---
+
+## 10. Physical Mechanical Calibration
+
+This section documents the calibration procedure for the three primary measurement subsystems of the THISULINK foot probe. All procedures must be executed before clinical use of a new or refurbished unit.
+
+### 10.1 VCA Actuator — Frequency Sweep Verification
+
+The Voice Coil Actuator (VCA) must produce a flat-amplitude chirp from 10 Hz to 300 Hz. Gain roll-off above 200 Hz causes underestimation of tissue stiffness in Class B/C tissue.
+
+**Procedure**
+
+1. Mount the probe on a flat PMMA block (density ≈ 1,190 kg/m³, known shear-wave speed ≈ 1,200 m/s).
+2. Apply the standard 1.50 ± 0.10 N preload. Confirm via HX711 serial monitor.
+3. Drive the VCA with a 10–300 Hz linear chirp over 200 ms at `F₀ = 0.100 N` (`config.h`: `VCA_FORCE_N 0.1`).
+4. Record `a₁(t)` from ADXL355 at x₁ = 105 mm. Apply 256-point FFT.
+5. **Pass criterion**: Amplitude variation across 10–300 Hz ≤ ±3 dB. Flag and reject the VCA if any 20-Hz band deviates by > 3 dB.
+
+**Expected chirp parameters (`config.h`)**
+
+| Parameter | Value |
+|---|---|
+| `VCA_SWEEP_HZ_LOW` | 10 |
+| `VCA_SWEEP_HZ_HIGH` | 300 |
+| `VCA_CHIRP_DURATION_MS` | 200 |
+| `VCA_FORCE_N` | 0.100 |
+
+### 10.2 HX711 + TAL221 Load-Cell — Zero and Span Calibration
+
+The TAL221 5 kg (50 N) strain-gauge load cell paired with the HX711 24-bit ADC provides the contact-force interlock. Incorrect zero introduces a systematic force offset that can violate the 1.40–1.60 N window.
+
+**Procedure**
+
+1. Power the probe with no load applied. Wait 30 seconds for thermal stabilisation.
+2. Issue `TARE` command via USB serial. The HX711 registers this zero count internally.
+3. Apply a **NIST-traceable calibration mass of 150 g** (1.471 N at g = 9.806 m/s²) to the probe contact surface.
+4. Issue `CALIBRATE 1471` (force in millinewtons). Firmware computes the scale factor and writes it to ESP32 NVS flash.
+5. Remove and reapply the 150 g mass 5×. Record readback values.
+6. **Pass criterion**: Mean readback 1,471 ± 30 mN; standard deviation < 10 mN (CV < 0.7%).
+7. Verify the interlock fires: apply a 200 g mass (1.962 N). Firmware must reject the scan and output `ERR_FORCE_HIGH`.
+
+**Interlock window hardcoded in firmware**
+
+```c
+#define FORCE_MIN_MN  1400   // 1.40 N
+#define FORCE_MAX_MN  1600   // 1.60 N
+```
+
+### 10.3 ADXL355 Dual-Accelerometer — Axis Alignment Verification
+
+Both ADXL355 sensors must have their Z-axis orthogonal to the plantar surface (within ±2°). Misalignment couples horizontal motion into the vertical shear-wave measurement, inflating phase-velocity estimates.
+
+**Procedure**
+
+1. Place the assembled probe on a precision granite surface plate (flatness < 5 µm/m).
+2. Power on. Read the static DC output of each ADXL355 Z-axis via USB serial.
+3. **Pass criterion**: Static Z-axis reading within ±0.035 g of 1.000 g (corresponds to ≤ 2° tilt; ADXL355 resolution 3.9 µg/LSB in ±2.048 g range).
+4. If out of tolerance, loosen the sensor PCB retaining screw, re-seat, re-torque to 0.15 N·m, and repeat.
+
+> [!NOTE]
+> The ADXL355 has a noise floor of 25 µg/√Hz. At a 4 kHz sampling rate, RMS noise is ≈ 1.77 mg — well below the tissue acceleration signals of 15–80 mg observed in the 10–300 Hz sweep range.
+
+---
+
+## 11. Repeatability Data
+
+> [!IMPORTANT]
+> The metrics in this section are **[FUTURE VALIDATION TARGET]** — pre-registered performance targets based on the MATLAB simulation suite (Experiments 01–02, 10–12). Physical repeatability testing on human volunteers has not yet been completed. These targets define the pass/fail criteria for the planned clinical feasibility study.
+
+### 11.1 Shear-Wave Elastography (SWE) — Test-Retest Targets
+
+| Metric | Target | Rationale |
+|---|---|---| 
+| **Coefficient of Variation (CV%)** | < 5% | Accepted threshold for biomechanical repeatability instruments (Gennisson et al., *Ultrasound Med Biol*, 2013) |
+| **Intraclass Correlation Coefficient (ICC, two-way mixed)** | > 0.85 | "Good-to-excellent" reliability per Koo & Mae (*J Chiropr Med*, 2016, PMID 27330520) |
+| **Minimum Detectable Change (MDC₉₅)** | < 8 kPa | Must be below the A→B tissue class gap (43.5 kPa → 96 kPa, Δ = 52.5 kPa) |
+
+**Planned protocol**: 15 healthy adult volunteers (age 25–60), 3 repeat measurements per foot per session, 2 sessions separated by 60 minutes (to allow tissue recovery), probe removed and repositioned between each repeat. Primary outcome: ICC for shear-wave speed `c_s`.
+
+### 11.2 Thermometry (MLX90621) — Test-Retest Targets
+
+| Metric | Target |
+|---|---|
+| Within-session SD of ΔT (left vs. right foot) | < 0.3 °C |
+| Between-session ICC of ΔT | > 0.80 |
+
+Threshold for clinical flag: **ΔT ≥ 2.2 °C** (Lavery et al., *Diabetes Care*, 2004, PMID 15504999). The MDC must be < 2.2 °C for the flag to be reliable.
+
+---
+
+## 12. Clinical Reference Comparison
+
+This table compares the THISULINK plantar foot assessment against the two devices it is designed to replace or augment in rural Indian primary-care settings.
+
+| Feature | THISULINK Foot Probe | Biothesiometer (VPT) | 10 g Semmes-Weinstein Monofilament |
+|---|---|---|---|
+| **Measurement** | Shear-wave elastography (Young's modulus E, shear-wave speed c_s) + plantar thermometry (ΔT) | Vibration Perception Threshold (VPT) at 128 Hz, single frequency | Pressure threshold at 10 standardised plantar sites |
+| **Tissue class output** | Class A (healthy) / B (early glycation) / C (diabetic neuropathy) | Numeric VPT in volts (normal < 15 V; mild 15–25 V; severe > 25 V) | Pass / fail per site (< 8 of 10 sites = peripheral neuropathy screen positive) |
+| **Subclinical detection** | ✅ Class B detects glycation stiffening before symptom onset (simulation validated) | ❌ VPT elevated only after established large-fibre neuropathy | ❌ Fails only with established neuropathy (sensitivity 66–77%) |
+| **Operator skill required** | Low — fixed preload interlock, automated sweep | Medium — voltage dial, patient reporting required | Low — but 10-site protocol is time-consuming in field |
+| **Unit cost (India, 2025)** | ₹12,000–₹18,000 (BOM estimate) | ₹10,500–₹40,000 | < ₹500 (consumable only, no electronics) |
+| **Portability** | ✅ Handheld, BLE, battery | ✅ Portable, mains or battery | ✅ Pocket-sized |
+| **Thermal asymmetry screening** | ✅ MLX90621 16×4 FIR array, ΔT ≥ 2.2 °C flag | ❌ Not measured | ❌ Not measured |
+| **Digital output / EHR integration** | ✅ BLE → Flutter → PocketBase | ❌ Manual transcription | ❌ Manual transcription |
+| **Evidence reference** | MATLAB Experiments 01, 02, 10 (simulation) | Boulton et al., *Diabetes Care* 2008, PMID 18165342 | Armstrong et al., *Diabetes Care* 1998, PMID 9571335 |
+
+> [!NOTE]
+> "Subclinical detection" claims are based on simulation results using the tissue stiffness model (Experiments 01–02). Physical human-subject validation against simultaneous biothesiometer VPT measurement is the planned next step.
+
+---
+
+## 13. Hardware Consistency Record
+
+This section is a single-source-of-truth for hardware identifiers that must be consistent across firmware, BLE packet specification, and all documentation.
+
+| Item | Value | Source |
+|---|---|---|
+| **BLE packet header bytes** | `0x54 0x48` (ASCII "TH") | Confirmed in `firmware/src/ble_packet.c`, line 12 |
+| **BLE packet total length** | 73 bytes | BLE packet specification v1.2 |
+| **BLE CRC algorithm** | CRC-8/MAXIM (poly 0x31, init 0x00) | Confirmed in `firmware/src/crc8.c` |
+| **Load cell device** | TAL221 5 kg (50 N) strain-gauge + HX711 24-bit ADC | BOM Rev 3 |
+| **Load cell interlock window** | 1.40–1.60 N (1,400–1,600 mN) | `firmware/include/config.h` constants `FORCE_MIN_MN` / `FORCE_MAX_MN` |
+| **Accelerometers** | Dual Analog Devices ADXL355 (20-bit, ±2.048 g, 25 µg/√Hz) | BOM Rev 3 |
+| **Accelerometer positions** | x₁ = 105 mm, x₂ = 145 mm from VCA contact point; Δx = 40 mm | Experiment 10 (MATLAB simulation) |
+| **Thermal sensor** | Melexis MLX90621 — 16×4 FIR thermal array, 64 pixels, I²C | BOM Rev 3; replaces any earlier single-spot MLX90614 references |
+| **Thermal flag threshold** | ΔT ≥ 2.2 °C (left vs. right foot asymmetry) | Lavery et al., *Diabetes Care* 2004, PMID 15504999 |
+| **VCA actuator parameters** | m = 0.045 kg, F₀ = 0.100 N, sweep 10–300 Hz, chirp 200 ms | Experiment 03 (MATLAB simulation) |
+| **MCU** | ESP32-S3-WROOM-1-N16R8 | BOM Rev 3 |
+| **Battery** | 3.7 V 2,000 mAh LiPo + DW01A + FS8205A protection circuit | BOM Rev 3 |
+
+> [!CAUTION]
+> Any documentation or firmware that references `0xDA 0x7A` as the BLE header, `MLX90614` as the thermal sensor, or a load-cell rating other than TAL221 5 kg (50 N) contains an error introduced by an earlier draft spec (`prompt2.md`). The values in this table are the confirmed correct values.
