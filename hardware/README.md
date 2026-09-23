@@ -316,22 +316,43 @@ Threshold for clinical flag: **ΔT ≥ 2.2 °C** (Lavery et al., *Diabetes Care*
 
 ## 12. Clinical Reference Comparison
 
-This table compares the THISULINK plantar foot assessment against the two devices it is designed to replace or augment in rural Indian primary-care settings.
+This table compares the THISULINK plantar foot assessment against the closest Indian prior art and standard-of-care devices. The most technically relevant comparison is against **VIBRASENSE** (Ayati Devices / BETiC, IIT Bombay) — the only other CDSCO-approved portable Indian diabetic foot screening device.
 
-| Feature | THISULINK Foot Probe | Biothesiometer (VPT) | 10 g Semmes-Weinstein Monofilament |
-|---|---|---|---|
-| **Measurement** | Shear-wave elastography (Young's modulus E, shear-wave speed c_s) + plantar thermometry (ΔT) | Vibration Perception Threshold (VPT) at 128 Hz, single frequency | Pressure threshold at 10 standardised plantar sites |
-| **Tissue class output** | Class A (healthy) / B (early glycation) / C (diabetic neuropathy) | Numeric VPT in volts (normal < 15 V; mild 15–25 V; severe > 25 V) | Pass / fail per site (< 8 of 10 sites = peripheral neuropathy screen positive) |
-| **Subclinical detection** | ✅ Class B detects glycation stiffening before symptom onset (simulation validated) | ❌ VPT elevated only after established large-fibre neuropathy | ❌ Fails only with established neuropathy (sensitivity 66–77%) |
-| **Operator skill required** | Low — fixed preload interlock, automated sweep | Medium — voltage dial, patient reporting required | Low — but 10-site protocol is time-consuming in field |
-| **Unit cost (India, 2025)** | ₹12,000–₹18,000 (BOM estimate) | ₹10,500–₹40,000 | < ₹500 (consumable only, no electronics) |
-| **Portability** | ✅ Handheld, BLE, battery | ✅ Portable, mains or battery | ✅ Pocket-sized |
-| **Thermal asymmetry screening** | ✅ MLX90621 16×4 FIR array, ΔT ≥ 2.2 °C flag | ❌ Not measured | ❌ Not measured |
-| **Digital output / EHR integration** | ✅ BLE → Flutter → PocketBase | ❌ Manual transcription | ❌ Manual transcription |
-| **Evidence reference** | MATLAB Experiments 01, 02, 10 (simulation) | Boulton et al., *Diabetes Care* 2008, PMID 18165342 | Armstrong et al., *Diabetes Care* 1998, PMID 9571335 |
+| Feature | THISULINK Foot Probe | **VIBRASENSE** (Ayati Devices / BETiC, IIT Bombay) | Biothesiometer (VPT) | 10 g Semmes-Weinstein Monofilament |
+|---|---|---|---|---|
+| **Core measurement** | Shear-wave elastography (SWE): broadband chirp 10–300 Hz → phase-velocity → Young's modulus E, shear-wave speed c_s | Quantitative Sensory Testing (QST): single-frequency sinusoidal vibration (≤ 6 µm displacement, 12 mm probe tip) → Vibration Perception Threshold (VPT) | VPT at 128 Hz, patient-reported | Pressure threshold at 10 standardised plantar sites, patient-reported |
+| **Physical phenomenon** | Propagating travelling shear wave — two-point phase-velocity measurement | Forced standing-wave vibration — single-site perception threshold | Standing-wave vibration — single-site | Static indentation force |
+| **What the output represents** | Tissue mechanical stiffness (bulk material property — independent of nerve function) | Sensory nerve conduction function (large-fibre) | Sensory nerve conduction function (large-fibre) | Pressure sensitivity (large-fibre + skin receptor) |
+| **Patient cooperation required?** | ❌ No — fully objective; no patient input at any step | ✅ Yes — patient must signal "I feel it now" (subjective endpoint) | ✅ Yes — subjective | ✅ Yes — patient responds |
+| **Detects subclinical glycation stiffening?** | ✅ Class B: E rises 43.5 kPa → 96 kPa before nerve-fibre loss (simulation-validated, Experiments 01–02) | ❌ VPT is normal until large-fibre axons are already lost | ❌ Same as VIBRASENSE | ❌ Detects established neuropathy only (sensitivity 66–77%) |
+| **Thermal asymmetry channel** | ✅ MLX90621 16×4 FIR array (64 pixels), ΔT ≥ 2.2 °C flag (Lavery et al. 2004, PMID 15504999) | ❌ VIBRASENSE base: none. VIBRASENSE+T: warm/cold perception threshold — patient-reported QST, not objective FIR thermometry | ❌ Not measured | ❌ Not measured |
+| **Unit cost (India, 2025)** | ₹12,000–₹18,000 (BOM estimate, field-deployable) | Commercial clinic-pricing (CDSCO-approved, hospital-grade) | ₹10,500–₹40,000 | < ₹500 |
+| **Regulatory status** | Prototype — CDSCO submission not yet filed | ✅ CDSCO-approved, Class B medical device | Generally exempt / Class A | Consumable, no registration |
+| **Digital output** | ✅ BLE 5.0 → 73-byte packet → Flutter → PocketBase | ✅ Mobile app + digital report | ❌ Manual transcription | ❌ Manual transcription |
+| **Evidence base** | MATLAB simulation Experiments 01, 02, 10 (tissue stiffness model) | Clinical studies at MGM Institute of Health Sciences + BETiC | Boulton et al., *Diabetes Care* 2008, PMID 18165342 | Armstrong et al., *Diabetes Care* 1998, PMID 9571335 |
+
+#### Why VPT and SWE detect at different points in the disease
+
+VIBRASENSE and THISULINK are not measuring the same thing. The distinction is mechanistic:
+
+- **VIBRASENSE / biothesiometer** detect at the **nerve-damage stage**: the peripheral nerve axon must already be dysfunctional for VPT to be elevated.
+- **THISULINK SWE** targets the **tissue-stiffening stage**: non-enzymatic glycation cross-links collagen fibres in plantar tissue and raises Young's modulus before nerve-fibre loss is clinically detectable.
+
+The disease sequence (per THISULINK's tissue model):
+
+```
+Hyperglycaemia
+    → non-enzymatic glycation → collagen cross-linking
+    → tissue stiffens (E: 43.5 kPa → 96 kPa)          ← THISULINK Class B flag
+    → microvascular ischaemia → nerve-fibre axon loss
+    → VPT rises                                          ← VIBRASENSE / biothesiometer detects
+    → established neuropathy → ulcer risk
+```
+
+This means if the mechanistic model is correct, THISULINK would flag patients earlier in the timeline than VIBRASENSE. **This claim is simulation-validated and requires human-subject clinical confirmation against simultaneous VPT measurement — that validation has not been done.**
 
 > [!NOTE]
-> "Subclinical detection" claims are based on simulation results using the tissue stiffness model (Experiments 01–02). Physical human-subject validation against simultaneous biothesiometer VPT measurement is the planned next step.
+> "Subclinical detection" claims are based on the tissue stiffness viscoelastic model (MATLAB Experiments 01–02). Physical human-subject validation against simultaneous VIBRASENSE VPT is the highest-priority next step before any clinical deployment claim.
 
 ---
 

@@ -187,17 +187,89 @@ This system is a **research and screening-assistance prototype**. It is not a ce
 
 ## Prior-Art Differentiation
 
-THISULINK is positioned against two categories of existing clinical instruments used in India for diabetic complication screening.
+### The Closest Prior Art: VIBRASENSE (Ayati Devices / BETiC, IIT Bombay)
 
-### Foot / Neuropathy Assessment
+The most technically relevant Indian prior art is **VIBRASENSE**, developed at the Biomedical Engineering and Technology Incubation Centre (BETiC), IIT Bombay, commercialised by **Ayati Devices Pvt. Ltd.** (SINE incubatee), and CDSCO-approved. It addresses the same clinical problem — portable diabetic foot neuropathy screening in India.
 
-| Device | What it measures | Typical India price | Key limitation vs. THISULINK |
-|---|---|---|---|
-| **Biothesiometer** (VPT) | Single-frequency (128 Hz) vibration perception threshold — large-fibre neuropathy only | ₹10,500–₹40,000 | No subclinical glycation stiffness detection; patient reports sensation subjectively; no thermal channel |
-| **10 g Semmes-Weinstein Monofilament** | Pressure threshold — 10 sites | < ₹500 | No electronics, no digital output; 66–77 % sensitivity; detects established neuropathy only |
-| **THISULINK SWE Probe** | Multi-frequency (10–300 Hz) shear-wave elastography → Young's modulus E, shear-wave speed c_s; tissue class A/B/C + MLX90621 plantar thermometry | ₹12,000–₹18,000 (BOM estimate) | **Adds**: subclinical Class B detection, thermal asymmetry flag, BLE digital output, automated preload interlock |
+Understanding exactly how VIBRASENSE works is required to understand where THISULINK is technically different.
 
-**Key differentiator**: The biothesiometer and monofilament detect established peripheral neuropathy (large-fibre loss). THISULINK adds a third detection layer — **subclinical glycation stiffening** (Tissue Class B) — which is mechanistically upstream of fibre loss and not detectable by VPT or monofilament. This capability is simulation-validated (MATLAB Experiments 01–02) and pending human-subject confirmation.
+#### What VIBRASENSE Does
+
+VIBRASENSE is a **quantitative sensory testing (QST) device** that measures **Vibration Perception Threshold (VPT)**:
+
+1. A 12 mm probe tip is placed on a single anatomical site (great toe, metatarsal head).
+2. The probe delivers a **single controlled sinusoidal vibration at a fixed frequency** (amplitude up to 6 µm displacement).
+3. The clinician increases amplitude until the patient reports feeling the vibration. That amplitude is the VPT in arbitrary units (Volts or microns).
+4. VPT is elevated when large-fibre sensory nerve axons are already lost — i.e., when **established peripheral neuropathy is present**.
+
+VIBRASENSE+T extends this by adding warm and cold temperature perception thresholds (small-fibre testing). Both versions depend on **patient self-report** of "I can feel it now".
+
+#### What THISULINK SWE Probe Does — and Why It Is Different
+
+THISULINK's plantar probe measures **tissue mechanical properties directly**, without relying on patient sensation reporting:
+
+1. A Voice Coil Actuator (VCA) drives a **broadband mechanical chirp (10–300 Hz, 200 ms)** — not a single frequency.
+2. Two ADXL355 accelerometers at x₁ = 105 mm and x₂ = 145 mm from the actuator record the **travelling shear wave's phase delay** as it propagates through plantar tissue.
+3. Shear-wave speed `c_s = 2πfΔx / Δφ(f)` is computed per frequency bin; Young's modulus is derived as `E = 3ρc_s²`.
+4. The tissue is classified as A / B / C based on the computed modulus — **no patient input required at any step**.
+
+| Technical property | VIBRASENSE (IITB/BETiC) | THISULINK SWE Probe |
+|---|---|---|
+| **Physical stimulus** | Single-frequency sinusoidal vibration (fixed freq.) | Broadband chirp 10–300 Hz (30 frequency bins) |
+| **Measured quantity** | Vibration perception threshold — patient self-report | Shear-wave phase velocity — accelerometer signal processing |
+| **What the output represents** | Nerve conduction function (large-fibre or small-fibre) | Tissue mechanical stiffness (Young's modulus E, shear-wave speed c_s) |
+| **Requires patient cooperation?** | ✅ Yes — patient must report sensation onset | ❌ No — fully objective, no patient input |
+| **Detects subclinical glycation stiffening (Class B)?** | ❌ No — VPT is normal until nerve fibres are lost | ✅ Yes — E rises from ~43.5 kPa (Class A) to ~96 kPa (Class B) before nerve loss (simulation-validated) |
+| **Thermal asymmetry channel** | ❌ None in VIBRASENSE; VIBRASENSE+T adds thermal QST (perception threshold only) | ✅ MLX90621 16×4 FIR array, 64 pixels, ΔT ≥ 2.2 °C flag (Lavery et al. 2004) |
+| **Propagation physics** | Forced vibration (standing-wave, single site) | Travelling shear wave (two-point phase-velocity measurement) |
+| **BOM cost estimate** | Commercial device, priced for clinic/hospital use | ₹12,000–₹18,000 (field-deployable BOM) |
+| **Regulatory status** | CDSCO-approved (Class B medical device) | Prototype — CDSCO submission not yet filed |
+
+#### The Core Technical Claim
+
+> VIBRASENSE answers: *"Have this patient's nerve fibres already been damaged?"*
+>
+> THISULINK answers: *"Has this patient's plantar tissue already become pathologically stiff — before their nerve fibres are lost?"*
+
+These are **different questions at different stages of the disease trajectory**:
+
+```
+Healthy foot
+    │
+    ├─► Hyperglycaemia → non-enzymatic glycation → collagen cross-linking
+    │         │
+    │         ▼
+    │   Plantar tissue stiffens:  E: 43.5 kPa → 96 kPa  [THISULINK detects here — Class B]
+    │         │
+    │         ▼
+    │   Microvascular ischaemia → peripheral nerve axon loss
+    │         │
+    │         ▼
+    │   Vibration perception threshold rises  [VIBRASENSE / biothesiometer detects here]
+    │         │
+    │         ▼
+    │   Established peripheral neuropathy → ulcer risk
+    │         │
+    │         ▼
+    └─► Ulceration → amputation
+```
+
+THISULINK's Class B detection targets the **mechanically stiff, neurologically intact** phase — the window where glycation-driven stiffening can be flagged before large-fibre nerve damage is measurable. This mechanistic claim is derived from the tissue viscoelastic model in MATLAB Experiments 01–02 and requires human-subject clinical comparison against simultaneous biothesiometer VPT for validation.
+
+> [!IMPORTANT]
+> The subclinical detection claim (Class B preceding nerve-fibre loss) is **simulation-validated only**. Clinical confirmation via a head-to-head comparison with VIBRASENSE VPT and histological tissue sampling has not been performed. This is the highest-priority validation gap.
+
+---
+
+### Full Device Comparison Table
+
+| Device | Measuring method | Subclinical stiffness | Objective (no patient report) | Thermal channel | Digital/BLE output | India price |
+|---|---|---|---|---|---|---|
+| **Biothesiometer** | VPT, 128 Hz, single site | ❌ | ❌ | ❌ | ❌ | ₹10,500–40,000 |
+| **VIBRASENSE** (Ayati/IITB) | VPT, digital QST, 12 mm probe, single freq. | ❌ | ❌ (patient reports) | ❌ (VIBRASENSE+T adds thermal QST) | ✅ App + digital report | Commercial (clinic-priced) |
+| **Yostra NEURO TOUCH** | VPT + monofilament + pressure, automated | ❌ | Partially (auto sequence) | ❌ | ✅ | ₹60,000–₹1,20,000 |
+| **10 g Monofilament** | Pressure threshold | ❌ | ❌ | ❌ | ❌ | < ₹500 |
+| **THISULINK SWE Probe** | Broadband SWE, 10–300 Hz chirp, dual accelerometer | ✅ Class B (simulation) | ✅ Fully objective | ✅ 16×4 FIR array | ✅ BLE 5.0 | ₹12,000–18,000 |
 
 ### Retinal Screening
 
