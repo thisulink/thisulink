@@ -1,7 +1,7 @@
 # THISULINK — Multimodal Diabetic Complication Screening Platform
 
 <p align="center">
-  <img src="https://img.shields.io/badge/SIH%202026-Grand%20Finale-orange?style=for-the-badge" alt="SIH 2026"/>
+  <img src="https://img.shields.io/badge/SIH%202026-%20-orange?style=for-the-badge" alt="SIH 2026"/>
   <img src="https://img.shields.io/badge/Domain-Healthcare%20%26%20BioMedical-red?style=for-the-badge" alt="Domain"/>
   <img src="https://img.shields.io/badge/Platform-Flutter%20%7C%20ESP32--S3%20%7C%20PocketBase-blue?style=for-the-badge" alt="Platform"/>
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
