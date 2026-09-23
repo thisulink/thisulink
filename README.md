@@ -24,7 +24,7 @@ THISULINK is a multimodal diabetic complication early-detection system built for
 Both are screened in a **6-day cycle** by an ASHA (Accredited Social Health Activist) worker. The system also tracks **blood pressure** and **blood glucose** in a single handheld device. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
 
 > [!IMPORTANT]
-> All outputs are **research and screening-assistance results**. They are not a diagnosis or a certified medical device reading. Every output requires clinician review before any clinical decision.
+> All outputs are **research and screening-assistance results**. 
 
 ---
 
