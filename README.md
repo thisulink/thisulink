@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <b>One 6-day screening cycle. Three modalities. One triage colour.</b><br/>
-  Designed for ASHA-worker delivery in rural India.
+  <b>AI-driven daily vital monitoring. Three modalities. One triage colour.</b><br/>
+  Designed for community health worker delivery in rural India.
 </p>
 
 ---
@@ -21,7 +21,7 @@ THISULINK is a multimodal diabetic complication early-detection system built for
 | **Diabetic foot / peripheral neuropathy** | Lower-limb amputation | Plantar shear-wave elastography (SWE) via custom VCA probe |
 | **Diabetic retinopathy** | Preventable blindness | AI fundus grading (EfficientNet-B0, APTOS 2019, AUC 0.976) |
 
-Both are screened in a **6-day cycle** by an ASHA (Accredited Social Health Activist) worker. The system also tracks **blood pressure** and **blood glucose** in a single handheld device. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
+Both are screened continuously by the patient at home with daily AI reminders, supported by community health workers (ASHA, VHN, ANM, CHO) who are alerted only when triage turns Orange or Red. The system tracks **blood pressure** and **blood glucose** in a single handheld device. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
 
 > [!IMPORTANT]
 > All outputs are **research and screening-assistance results**. 
@@ -31,23 +31,31 @@ Both are screened in a **6-day cycle** by an ASHA (Accredited Social Health Acti
 ## Platform at a glance
 
 ```
-Patient (rural India, ASHA-worker visit)
+Patient (home — self-monitoring with AI daily reminders)
 │
-├─ Day 1 & 4 ──► Smartphone fundus photo ──► EfficientNet-B0 ──► DR grade 0–4 + P(referable)
+├─ Every day ──► AI reminder → BP + Glucose reading (THISULINK-VM device)
+│                ├─ PPG waveform → SBP / DBP (cuffless, XGBoost on ESP32-S3)
+│                └─ Electrochemical strip → Blood glucose (mg/dL)
 │
-├─ Every day ──► THISULINK Foot Probe (VCA + dual ADXL355 + HX711 + thermometer)
-│                ├─ 10–300 Hz shear-wave sweep ──► c_s (m/s) ──► E (kPa) ──► Tissue class A/B/C
-│                └─ Contact thermometry ──► ΔT °C ──► flag if ≥ 2.2°C (Armstrong & Lavery)
+├─ When available ──► THISULINK Foot Probe (VCA + dual ADXL355 + thermometer)
+│                     ├─ 10–300 Hz sweep → c_s → E (kPa) → Tissue class A/B/C
+│                     └─ Contact thermometry → ΔT °C → flag if ≥ 2.2°C
 │
-├─ Any time ──► THISULINK-VM handheld (MAX30102 + BMI270 + ESP32-S3 + glucometer strip)
-│               ├─ PPG waveform analysis ──► SBP / DBP (cuffless, XGBoost)
-│               └─ Electrochemical strip ──► Blood glucose (mg/dL)
+├─ Periodic ──► Smartphone fundus photo → EfficientNet-B0 → DR grade 0–4
 │
-└─ All channels ──► BLE ──► Flutter app ──► HTTPS ──► PocketBase (thisulink.xyz)
-                                                        └─ Triage hook ──► 🟢🟡🟠🔴
-                                                        └─ ASHA relay alert (no FCM)
-                                                        └─ Mentor telemedicine queue
+└─ All channels → BLE → Flutter app → PocketBase (thisulink.xyz)
+                                            │
+                               Triage engine (PocketBase JS hook)
+                                            │
+                    🟢 Green / 🟡 Yellow → patient self-manages
+                    🟠 Orange → ASHA / VHN / ANM alerted
+                    🔴 Red   → Health Worker + PHC Medical Officer alerted
 ```
+
+**Community health workers** (ASHA, VHN, ANM, CHO) are alerted **only when triage turns Orange or Red**. No fixed visit schedule — visit happens when the data says it's needed.
+
+**AI reminder system** (no FCM): WorkManager + BGTaskScheduler check daily whether BP and glucose have been recorded. Unacknowledged reminders after 4 hours trigger a health worker relay alert.
+
 
 ---
 
@@ -115,27 +123,17 @@ Patient (rural India, ASHA-worker visit)
 
 ---
 
-## 6-day screening cycle
+## Community health worker roles
 
-```
-Day 1  ──  Foot scan ✓  |  Retinal photo ✓  |  Glucose ✓  |  BP ✓
-Day 2  ──  Foot scan ✓  |                   |  Glucose ✓  |  BP ✓
-Day 3  ──  Foot scan ✓  |                   |  Glucose ✓  |  BP ✓
-Day 4  ──  Foot scan ✓  |  Retinal photo ✓  |  Glucose ✓  |  BP ✓
-Day 5  ──  Foot scan ✓  |                   |  Glucose ✓  |  BP ✓
-Day 6  ──  Foot scan ✓  |                   |  Glucose ✓  |  BP ✓
-              │                  │                 │            │
-              ▼                  ▼                 ▼            ▼
-         E (kPa)           DR grade           mg/dL        mmHg
-         Tissue A/B/C      P(referable)
-         ΔT °C
-              │
-              └──────────────────────────────────────────────────────► TRIAGE
-                                                                   🟢 Green / 🟡 Yellow
-                                                                   🟠 Orange / 🔴 Red
-```
+India's NPCDCS programme does not mandate fixed monthly visits for every diabetic patient. THISULINK is designed around this reality — health workers are alerted **when the data demands it**, not on a calendar.
 
-**AI vital reminder system** (no FCM): WorkManager + BGTaskScheduler monitor the patient's measurement cadence. If a vital is overdue, the patient gets a personalised notification. If unacknowledged for 4 hours, the ASHA worker gets a relay alert.
+| Role | Full name | Triggered when |
+|---|---|---|
+| **ASHA** | Accredited Social Health Activist | 🟠 Orange / 🔴 Red triage or 4-hr unacknowledged reminder |
+| **VHN** | Village Health Nurse (Tamil Nadu) | 🟠 Orange / 🔴 Red — doorstep visit |
+| **ANM** | Auxiliary Nurse Midwife | Sub-centre follow-up for flagged patients |
+| **CHO** | Community Health Officer | Health & Wellness Centre review |
+| **MO** | Medical Officer at PHC | 🔴 Red — emergency referral pathway |
 
 ---
 

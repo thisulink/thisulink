@@ -1,8 +1,12 @@
 # THISULINK — Frontline Dual-Modality Triage & Patient Companion App
 
-A cross-platform Flutter application engineered for frontline healthcare workers (ASHAs) and people living with diabetes. It interfaces seamlessly with the **THISULINK Plantar Biomechanical SWE Platform** over Bluetooth Low Energy (BLE) and the **Smartphone +20D Volk Retinal Adapter**, collects a structured 6-day cycle of biomechanical, thermal, optical, and glycemic measurements, and hands validated diagnostic records to supervising clinicians. 
+A cross-platform Flutter application for **patients living with diabetes** and the **community health workers** who support them — including ASHA workers, Village Health Nurses (VHN), ANMs, and CHOs. It interfaces with the **THISULINK Plantar SWE Probe** over BLE and the **Smartphone +20D Volk Retinal Adapter**, collects daily BP and glucose readings via AI reminders, and pushes validated records to a clinician portal for review.
 
-Everything clinical is authenticated and decided on the clinic's own server; the mobile handset acts as an instrument panel, telemetry display, and encrypted edge relay—never an unchecked authority.
+The app has two login roles:
+- **Patient** — takes daily vitals (BP, glucose), receives AI reminders, sees their own triage colour
+- **Health Worker** (ASHA / VHN / ANM / CHO) — gets alerted only when triage turns 🟠 Orange or 🔴 Red, can view patient history and relay to PHC
+
+Everything clinical is authenticated and decided on the server; the mobile handset acts as an instrument panel, telemetry display, and encrypted edge relay — never an unchecked diagnostic authority.
 
 | Specification | Implementation Details |
 |---|---|
@@ -40,7 +44,7 @@ flowchart LR
     C1["Re-verify CRC & Decompress"]
     C2["1.50 N Contact Preload Gate<br/>[1.40 - 1.60 N Interlock]"]
     C3["Dual-Modality Triage Engine<br/>Plantar E (kPa) + FIR ΔT (°C) + Retinal DR"]
-    C4["6-Day Clinical Cycle Engine"]
+    C4["AI Vital Reminder Engine<br/>Daily BP + Glucose nudge<br/>Health Worker alert on Orange/Red"]
     C5["Clinical AI: RAG → Safety → Doctor Routing"]
   end
 
@@ -129,7 +133,7 @@ sequenceDiagram
     A->>S: Transmit encrypted payloads over HTTPS
     S-->>S: Enforce Contact Preload Gate (1.40 N <= F <= 1.60 N)
     S-->>S: Calculate Multimodal Triage: E (kPa) + ΔT (°C) + Retinal Grade
-    S->>A: Store record, update 6-Day Cycle status, return triage category
+    S->>A: Store record, run AI reminder check, return triage colour
     A-->>A: Render Green / Yellow / Orange / Red triage card
     S->>D: Push elevated risk case to specialist review queue
 ```
@@ -149,33 +153,51 @@ sequenceDiagram
 
 ### 3.2 AI-Driven Vital Reminder System
 
-Rather than a passive UI timer, THISULINK's clinical AI actively monitors each patient's measurement cadence and proactively reminds them to take their vitals through personalized local notifications.
+ASHA workers, VHNs, and ANMs under India's NPCDCS programme visit diabetic patients **on a need basis only** — not on a fixed monthly or weekly schedule. There is no national mandate for regular home visits for every diabetic patient. THISULINK's AI reminder system bridges this gap by reminding the **patient** to take their own vitals daily, without depending on a health worker visit.
 
-#### Reminder Categories
+#### How it works
 
-| Vital | Trigger Condition | Example Notification |
+Every day, the app checks whether the patient has taken their BP and glucose reading. If not, a personalised local notification fires:
+
+| Vital | Reminder trigger | Example notification |
 |---|---|---|
-| **Foot Scan (Plantar SWE)** | No scan logged for the current cycle day | *"Good morning Ravi! Day 3 of your 6-day cycle. Time for your foot scan."* |
-| **Post-Meal Glucose** | Meal logged but no glucose reading within 2 hours | *"It's been 2 hours since your meal log. Please record your post-meal glucose."* |
-| **Retinal Photo** | Retinal image due on Day 1 or Day 4 of cycle | *"Your retinal photograph is due today. Open THISULINK to complete your cycle."* |
-| **Missed Day Follow-up** | No activity detected for > 26 hours | *"We missed you yesterday. Your 6-day cycle continues — tap to resume."* |
+| **Blood Pressure** | No BP reading logged today | *"Good morning! Time to check your BP. Takes 2 minutes."* |
+| **Blood Glucose** | No glucose reading after meal | *"It's been 2 hrs since your meal. Record your glucose now."* |
+| **Foot Scan** | No SWE scan in last 3 days | *"Your foot scan is due. Connect the THISULINK probe."* |
+| **Missed day** | No activity for >26 hrs | *"We missed you yesterday. Tap to record today's vitals."* |
 
-#### Delivery Architecture
+If the patient does not acknowledge the reminder within **4 hours**, the linked **Health Worker** (ASHA / VHN / ANM / CHO) gets a relay alert on their own device.
+
+#### Community health worker ecosystem
+
+| Role | Full name | When they are alerted |
+|---|---|---|
+| **ASHA** | Accredited Social Health Activist | 🟠 Orange or 🔴 Red triage, or 4-hr unacknowledged reminder |
+| **VHN** | Village Health Nurse (Tamil Nadu) | 🟠 Orange or 🔴 Red — proactive doorstep visit |
+| **ANM** | Auxiliary Nurse Midwife | Sub-centre follow-up for flagged patients |
+| **CHO** | Community Health Officer | HWC clinical review for confirmed high-risk |
+
+> Health workers are **not notified for Green or Yellow** — this prevents alert fatigue and lets them focus on genuinely elevated-risk patients.
+
+#### Delivery architecture (no cloud dependency)
 
 ```mermaid
 flowchart LR
-    A["WorkManager Poll\n(15-min floor, Android)"] --> B["Check: Last Measurement Timestamps\nvs. Cycle Day Schedule"]
-    B --> C{Gap Detected?}
+    A["WorkManager Poll\n(15-min floor, Android)"] --> B["Check: Last BP + Glucose\nTimestamp vs. Today"]
+    B --> C{Reading missing?}
     C -- Yes --> D["Build Personalised\nReminder Payload"]
     D --> E["flutter_local_notifications\n(No FCM, No Push Cloud)"]
     E --> F["Patient Device\nNotification Tray"]
     C -- No --> G["Sleep until\nnext poll"]
+    F --> H{Acknowledged\nwithin 4 hrs?}
+    H -- No --> I["Health Worker\nRelay Alert"]
+    H -- Yes --> G
 ```
 
-- **No cloud dependency**: All reminder logic runs on-device via WorkManager (Android) and `BGTaskScheduler` (iOS). No Firebase Cloud Messaging or any third-party push service is used.
-- **Personalization**: The AI adjusts reminder timing based on the patient's historical measurement habits (e.g., if the patient consistently scans at 8 AM, the reminder fires at 7:50 AM).
-- **Cycle-aware**: The reminder engine knows which day (1–6) the patient is on and which vitals are mandatory vs. optional on that day, avoiding notification fatigue.
-- **ASHA-relay fallback**: If the patient has not acknowledged a reminder within 4 hours, the ASHA worker linked to that patient receives a relay alert on their own device.
+- **No cloud dependency** — WorkManager (Android) + BGTaskScheduler (iOS). No Firebase, no FCM.
+- **Personalised timing** — AI adjusts reminder time based on the patient's historical measurement habits.
+- **Health worker relay** — unacknowledged reminders escalate to the linked ASHA / VHN automatically.
+
 
 ---
 
@@ -292,7 +314,7 @@ flutter build apk --release --dart-define=THISULINK_API_BASE=https://your-clinic
 |---|---|---|
 | `test/codec_test.dart` | Wire Protocol & CRC-16 | Validates byte-for-byte parsing parity between ESP32 C++, Node.js, and Dart codecs. |
 | `test/preload_gate_test.dart` | Preload Interlock Logic | Confirms that scans outside $1.40 - 1.60\text{ N}$ trigger user adjustment prompts. |
-| `test/cycle_state_test.dart` | 6-Day Cycle Engine | Asserts that `ready` state is reached only when SWE, Retinal, and Glucose records are valid. |
+| `test/reminder_engine_test.dart` | AI Reminder Engine | Confirms daily BP + glucose reminder fires correctly and health worker relay triggers after 4 hrs. |
 | `test/triage_decision_test.dart`| Multimodal Stratification | Confirms 4-tier assignment (Green, Yellow, Orange, Red) against clinical ground truth. |
 | `test/security_storage_test.dart`| Keystore & Token Auth | Verifies that access/refresh tokens are stored strictly in OS-level encrypted storage. |
 
