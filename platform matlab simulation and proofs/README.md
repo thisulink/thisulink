@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Problem Context
 
-**THISULINK** is an integrated dual-modality frontline triage device engineered for rural healthcare workers (ASHAs) to prevent diabetic lower-limb amputations and diabetic retinopathy in under-resourced communities.
+**THISULINK** is an integrated dual-modality frontline triage device engineered for **Frontline Health Workers (VHN / ANM / CHO)** to prevent diabetic lower-limb amputations and diabetic retinopathy in under-resourced communities.
 
 This repository contains the complete **mechanical, biomechanical, electromechanical, and sensor-level simulation framework** developed in MATLAB to model and validate the **THISULINK Plantar Shear Wave Elastography (SWE) Platform**.
 
@@ -62,7 +62,7 @@ THISULINK launches non-invasive, low-frequency shear waves ($10 - 300\text{ Hz}$
 
 ## 3. Plantar Soft-Tissue Biomechanical Classes
 
-The simulation models three clinically validated stages of diabetic plantar tissue remodeling ($\rho = 1050\text{ kg/m}^3$):
+The simulation models **three preliminary research mechanical-response bands** of diabetic plantar tissue remodeling ($\rho = 1050\text{ kg/m}^3$). These bands are derived from the Kelvin-Voigt viscoelastic model and literature-sourced tissue parameters — they are not clinically validated stages. Human-subject confirmation against biopsy or established clinical markers has not been performed.
 
 ```
 +---------------------------------------------------------------------------------------------------------+

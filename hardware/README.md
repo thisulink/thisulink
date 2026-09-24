@@ -54,8 +54,8 @@ Tissue classification:
 | U2 | Accelerometer pickup 1 | ADXL355 (ADXL355BEZ) | 1 | x₁ = 105 mm, 20-bit, ±2.048 g |
 | U3 | Accelerometer pickup 2 | ADXL355 (ADXL355BEZ) | 1 | x₂ = 145 mm, Δx = 40 mm |
 | U4 | Load cell ADC | HX711 (24-bit) | 1 | Measures contact force from load cell |
-| U5 | Load cell | TAL221 50g or equiv. | 1 | Contact force 1.40–1.60 N interlock |
-| U6 | Thermometer | MLX90614ESF (IR) or DS18B20 (contact) | 1 | Contact ΔT measurement |
+| U5 | Load cell | TAL221 5 kg (50 N) strain-gauge | 1 | Contact force 1.40–1.60 N interlock |
+| U6 | Thermometer | Melexis MLX90621 16×4 FIR array (I²C) | 1 | 64-pixel plantar thermal map, ΔT ≥ 2.2°C flag |
 | U7 | VCA driver IC | DRV8833 or L293D | 1 | H-bridge, drives VCA coil |
 | U8 | VCA actuator | LW-65 or equivalent voice-coil actuator | 1 | m = 0.045 kg, F₀ = 0.1 N |
 | U9 | Display | SSD1306 OLED 0.96" | 1 | Live c_s / E / tissue class / force |
@@ -94,7 +94,7 @@ Tissue classification:
 
 | Signal | ESP32-S3 GPIO | Devices |
 |---|---|---|
-| SDA | GPIO 8 | HX711, MAX17048, SSD1306, MLX90614 |
+| SDA | GPIO 8 | HX711, MAX17048, SSD1306, MLX90621 |
 | SCL | GPIO 9 | Same |
 
 ### VCA driver and load cell
@@ -310,7 +310,7 @@ Both ADXL355 sensors must have their Z-axis orthogonal to the plantar surface (w
 | Within-session SD of ΔT (left vs. right foot) | < 0.3 °C |
 | Between-session ICC of ΔT | > 0.80 |
 
-Threshold for clinical flag: **ΔT ≥ 2.2 °C** (Lavery et al., *Diabetes Care*, 2004, PMID 15504999). The MDC must be < 2.2 °C for the flag to be reliable.
+Threshold for clinical flag: **ΔT ≥ 2.2 °C** (Lavery et al., *Diabetes Care*, 2007, PMID 17192326). The MDC must be < 2.2 °C for the flag to be reliable.
 
 ---
 
@@ -325,7 +325,7 @@ This table compares the THISULINK plantar foot assessment against the closest In
 | **What the output represents** | Tissue mechanical stiffness (bulk material property — independent of nerve function) | Sensory nerve conduction function (large-fibre) | Sensory nerve conduction function (large-fibre) | Pressure sensitivity (large-fibre + skin receptor) |
 | **Patient cooperation required?** | ❌ No — fully objective; no patient input at any step | ✅ Yes — patient must signal "I feel it now" (subjective endpoint) | ✅ Yes — subjective | ✅ Yes — patient responds |
 | **Detects subclinical glycation stiffening?** | ✅ Class B: E rises 43.5 kPa → 96 kPa before nerve-fibre loss (simulation-validated, Experiments 01–02) | ❌ VPT is normal until large-fibre axons are already lost | ❌ Same as VIBRASENSE | ❌ Detects established neuropathy only (sensitivity 66–77%) |
-| **Thermal asymmetry channel** | ✅ MLX90621 16×4 FIR array (64 pixels), ΔT ≥ 2.2 °C flag (Lavery et al. 2004, PMID 15504999) | ❌ VIBRASENSE base: none. VIBRASENSE+T: warm/cold perception threshold — patient-reported QST, not objective FIR thermometry | ❌ Not measured | ❌ Not measured |
+| **Thermal asymmetry channel** | ✅ MLX90621 16×4 FIR array (64 pixels), ΔT ≥ 2.2 °C flag (Lavery et al. 2007, PMID 17192326) | ❌ VIBRASENSE base: none. VIBRASENSE+T: warm/cold perception threshold — patient-reported QST, not objective FIR thermometry | ❌ Not measured | ❌ Not measured |
 | **Unit cost (India, 2025)** | ₹12,000–₹18,000 (BOM estimate, field-deployable) | Commercial clinic-pricing (CDSCO-approved, hospital-grade) | ₹10,500–₹40,000 | < ₹500 |
 | **Regulatory status** | Prototype — CDSCO submission not yet filed | ✅ CDSCO-approved, Class B medical device | Generally exempt / Class A | Consumable, no registration |
 | **Digital output** | ✅ BLE 5.0 → 73-byte packet → Flutter → PocketBase | ✅ Mobile app + digital report | ❌ Manual transcription | ❌ Manual transcription |
@@ -370,7 +370,7 @@ This section is a single-source-of-truth for hardware identifiers that must be c
 | **Accelerometers** | Dual Analog Devices ADXL355 (20-bit, ±2.048 g, 25 µg/√Hz) | BOM Rev 3 |
 | **Accelerometer positions** | x₁ = 105 mm, x₂ = 145 mm from VCA contact point; Δx = 40 mm | Experiment 10 (MATLAB simulation) |
 | **Thermal sensor** | Melexis MLX90621 — 16×4 FIR thermal array, 64 pixels, I²C | BOM Rev 3; replaces any earlier single-spot MLX90614 references |
-| **Thermal flag threshold** | ΔT ≥ 2.2 °C (left vs. right foot asymmetry) | Lavery et al., *Diabetes Care* 2004, PMID 15504999 |
+| **Thermal flag threshold** | ΔT ≥ 2.2 °C (left vs. right foot asymmetry) | Lavery et al., *Diabetes Care* 2007, PMID 17192326 |
 | **VCA actuator parameters** | m = 0.045 kg, F₀ = 0.100 N, sweep 10–300 Hz, chirp 200 ms | Experiment 03 (MATLAB simulation) |
 | **MCU** | ESP32-S3-WROOM-1-N16R8 | BOM Rev 3 |
 | **Battery** | 3.7 V 2,000 mAh LiPo + DW01A + FS8205A protection circuit | BOM Rev 3 |

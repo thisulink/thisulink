@@ -21,7 +21,7 @@ THISULINK is a multimodal diabetic complication early-detection system built for
 | **Diabetic foot / peripheral neuropathy** | Lower-limb amputation | Plantar shear-wave elastography (SWE) via custom VCA probe |
 | **Diabetic retinopathy** | Preventable blindness | AI fundus grading (EfficientNet-B0, APTOS 2019, AUC 0.976) |
 
-Both are screened continuously by the patient at home with daily AI reminders, supported by community health workers (ASHA, VHN, ANM, CHO) who are alerted only when triage turns Orange or Red. The system tracks **blood pressure** and **blood glucose** in a single handheld device. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
+Both are screened continuously by the patient at home with daily AI reminders, supported by **Frontline Health Workers (VHN / ANM / CHO)** who are alerted only when triage turns Orange or Red. The system tracks **blood pressure** and **blood glucose** in a single handheld device. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
 
 > [!IMPORTANT]
 > All outputs are **research and screening-assistance results**. 
@@ -48,11 +48,11 @@ Patient (home — self-monitoring with AI daily reminders)
                                Triage engine (PocketBase JS hook)
                                             │
                     🟢 Green / 🟡 Yellow → patient self-manages
-                    🟠 Orange → ASHA / VHN / ANM alerted
+                    🟠 Orange → Frontline Health Worker (VHN / ANM / CHO) alerted
                     🔴 Red   → Health Worker + PHC Medical Officer alerted
 ```
 
-**Community health workers** (ASHA, VHN, ANM, CHO) are alerted **only when triage turns Orange or Red**. No fixed visit schedule — visit happens when the data says it's needed.
+**Frontline Health Workers** (VHN / ANM / CHO) are alerted **only when triage turns Orange or Red**. No fixed visit schedule — visit happens when the data says it's needed.
 
 **AI reminder system** (no FCM): WorkManager + BGTaskScheduler check daily whether BP and glucose have been recorded. Unacknowledged reminders after 4 hours trigger a health worker relay alert.
 
@@ -69,14 +69,16 @@ Patient (home — self-monitoring with AI daily reminders)
 | [`vitals-monitor/`](vitals-monitor/) | Cuffless BP + blood glucose in one ESP32-S3 handheld — PPG/IMU/XGBoost pipeline, electrochemical strip AFE, BLE packet spec | [`README.md`](vitals-monitor/README.md) |
 | [`hardware/`](hardware/) | THISULINK foot probe BOM and PCB spec — VCA actuator, dual ADXL355, HX711 load cell, contact thermometer, Velcro stabilisation | [`README.md`](hardware/README.md) |
 | [`firmware/`](firmware/) | ESP32-S3 + ADXL345 Arduino firmware POC — ring buffer, IIR biquad DSP, radix-2 FFT, feature extraction | [`README.md`](firmware/thisulink-esp32s3-adxl345/arduino/thisulink_firmware/README.md) |
-| [`software/`](software/) | Flutter app architecture — dual-role (ASHA worker + Mentor), BLE probe connect, AI vital reminder system, 5-tab shell | [`README.md`](software/README.md) |
+| [`software/`](software/) | Flutter app architecture — dual-role (Health Worker + Patient), BLE probe connect, AI vital reminder system, 5-tab shell | [`README.md`](software/README.md) |
 | [`backend/`](backend/) | Self-hosted infra — Cloudflare Tunnel + Tailscale + PocketBase + Node.js/Express — full deployment guide | [`README.md`](backend/README.md) |
 
 ---
 
-## Key results (measured, not claimed)
+## Key Results & Verification Status
 
 ### Retinal DR grading — EfficientNet-B0 on APTOS 2019 (677 held-out test images)
+
+> **Verification: Internal held-out benchmark** — images never seen during training or checkpoint selection. External dataset validation (IDRiD, Messidor-2) not yet done.
 
 | Metric | Result | 95% CI |
 |---|---|---|
@@ -88,6 +90,8 @@ Patient (home — self-monitoring with AI daily reminders)
 
 ### Plantar SWE — MATLAB simulation (12 experiments)
 
+> **Verification: MATLAB simulation** — Kelvin-Voigt viscoelastic model, not human-subject data. Physical repeatability and clinical comparison studies have not been conducted.
+
 | Result | Value | Experiment |
 |---|---|---|
 | Shear-wave speed reconstruction error | < 5% RMSE | Exp 10 |
@@ -97,12 +101,14 @@ Patient (home — self-monitoring with AI daily reminders)
 
 ### Hardware (THISULINK foot probe)
 
+> **Verification: Engineering specification** — design targets from BOM and firmware constants. Physical calibration and repeatability testing on the assembled probe are pre-registered targets, not completed measurements.
+
 | Parameter | Value |
 |---|---|
 | VCA drive force | 0.100 N, 10–300 Hz sweep |
 | Load cell interlock | 1.40 – 1.60 N acceptance window |
 | Dual ADXL355 separation | Δx = 40 mm (x₁=105 mm, x₂=145 mm) |
-| Thermometry threshold | ΔT ≥ 2.2°C (Armstrong & Lavery, *Diabetes Care* 1997) |
+| Thermometry threshold | ΔT ≥ 2.2°C (Lavery et al., *Diabetes Care* 2007, PMID 17192326) |
 
 ---
 
@@ -123,13 +129,12 @@ Patient (home — self-monitoring with AI daily reminders)
 
 ---
 
-## Community health worker roles
+## Frontline health worker roles
 
 India's NPCDCS programme does not mandate fixed monthly visits for every diabetic patient. THISULINK is designed around this reality — health workers are alerted **when the data demands it**, not on a calendar.
 
 | Role | Full name | Triggered when |
 |---|---|---|
-| **ASHA** | Accredited Social Health Activist | 🟠 Orange / 🔴 Red triage or 4-hr unacknowledged reminder |
 | **VHN** | Village Health Nurse (Tamil Nadu) | 🟠 Orange / 🔴 Red — doorstep visit |
 | **ANM** | Auxiliary Nurse Midwife | Sub-centre follow-up for flagged patients |
 | **CHO** | Community Health Officer | Health & Wellness Centre review |
@@ -176,8 +181,8 @@ This system is a **research and screening-assistance prototype**. It is not a ce
 
 | Reference | Used for |
 |---|---|
-| Armstrong & Lavery, *Diabetes Care* 1997 | Thermometry threshold ΔT ≥ 2.2°C |
-| Raman et al., *Indian J Ophthalmol* 2019 | Referable DR = ICDR grade ≥ 2 (Indian consensus) |
+| Lavery et al., *Diabetes Care* 2007, PMID 17192326 | Thermometry threshold ΔT ≥ 2.2°C (> 4°F) between contralateral plantar sites |
+| Raman et al., *Indian J Ophthalmol* 2021, PMC 7942107 | Referable DR = ICDR grade ≥ 2 (Indian consensus) |
 | APTOS 2019, Aravind Eye Hospital, Kaggle | Retinal training dataset (3,385 images) |
 | PubMed PMID 40030275 | PPG-only cuffless BP — 25-study systematic review |
 | FDA Draft Guidance, January 2026 | Cuffless BP clinical performance testing requirements |
