@@ -514,8 +514,8 @@ All APTOS 2019 images were captured on desktop fundus cameras. The THISULINK Flu
 
 | Metric | Current state | THISULINK |
 |---|---|---|
-| Daily BP self-monitoring in rural diabetics | < 15 % compliance | Targeted via daily AI reminder (once per day) |
-| Glucose self-monitoring | Finger-prick only; ~30 % rural access | PPG-based non-invasive screening (research stage, not validated) |
+| Daily BP self-monitoring in rural diabetics | < 15 % compliance | Targeted via daily AI reminder + standard BLE BP cuff sync |
+| Glucose self-monitoring | Finger-prick only; ~30 % rural access | Standard digital glucometer with automatic BLE sync |
 
-**Reference for PPG-based BP**: Shyam et al., *IEEE Journal of Biomedical and Health Informatics*, 2025, PMID 40030275.
+**Reference for Clinical Vitals Integration**: American Diabetes Association (ADA) Standards of Care in Diabetes, 2026; ISO 81060-2 (Non-invasive sphygmomanometers).
 

@@ -21,7 +21,7 @@ THISULINK is a multimodal diabetic complication early-detection system built for
 | **Diabetic foot / peripheral neuropathy** | Lower-limb amputation | Plantar shear-wave elastography (SWE) via custom VCA probe |
 | **Diabetic retinopathy** | Preventable blindness | AI fundus grading (EfficientNet-B0, APTOS 2019, AUC 0.976) |
 
-Both are screened continuously by the patient at home with daily AI reminders, supported by **Frontline Health Workers (VHN / ANM / CHO)** who are alerted only when triage turns Orange or Red. The system tracks **blood pressure** and **blood glucose** in a single handheld device. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
+Both are screened continuously by the patient at home with daily AI reminders, supported by **Frontline Health Workers (VHN / ANM / CHO)** who are alerted only when triage turns Orange or Red. The system captures **blood pressure** and **blood glucose** from standard clinical monitors via seamless BLE sync. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
 
 > [!IMPORTANT]
 > All outputs are **research and screening-assistance results**. 
@@ -33,9 +33,9 @@ Both are screened continuously by the patient at home with daily AI reminders, s
 ```
 Patient (home — self-monitoring with AI daily reminders)
 │
-├─ Every day ──► AI reminder → BP + Glucose reading (THISULINK-VM device)
-│                ├─ PPG waveform → SBP / DBP (cuffless, XGBoost on ESP32-S3)
-│                └─ Electrochemical strip → Blood glucose (mg/dL)
+├─ Every day ──► AI reminder → BP & Glucose check (Standard COTS BLE Devices)
+│                ├─ Digital Oscillometric BP Monitor → SBP / DBP (BLE GATT Sync)
+│                └─ Standard Clinical Glucometer → Blood Glucose (mg/dL via BLE)
 │
 ├─ When available ──► THISULINK Foot Probe (VCA + dual ADXL355 + thermometer)
 │                     ├─ 10–300 Hz sweep → c_s → E (kPa) → Tissue class A/B/C
@@ -66,7 +66,7 @@ Patient (home — self-monitoring with AI daily reminders)
 | [`platform matlab simulation and proofs/`](platform%20matlab%20simulation%20and%20proofs/) | 12 MATLAB simulation experiments proving SWE physics — Kelvin-Voigt model, dual-pickup phase delay, shear-wave dispersion, tremor suppression, 120-patient triage cohort | [`README.md`](platform%20matlab%20simulation%20and%20proofs/README.md) |
 | [`Clinical_Datasets_and_Parameter_Conversion/`](Clinical_Datasets_and_Parameter_Conversion/) | Literature provenance for all physical constants (ρ, c_s, ΔT threshold) and 5-step mechanical-to-clinical conversion pipeline | [`README.md`](Clinical_Datasets_and_Parameter_Conversion/README.md) |
 | [`retinal-screening/`](retinal-screening/) | EfficientNet-B0 retinal DR grading module — APTOS 2019 results, research protocol, evaluation contract, all figures | [`README.md`](retinal-screening/README.md) |
-| [`vitals-monitor/`](vitals-monitor/) | Cuffless BP + blood glucose in one ESP32-S3 handheld — PPG/IMU/XGBoost pipeline, electrochemical strip AFE, BLE packet spec | [`README.md`](vitals-monitor/README.md) |
+| [`vitals-monitor/`](vitals-monitor/) | Standardized COTS BLE vitals integration — BLE GATT profile sync for standard digital BP monitors and glucometers | [`README.md`](vitals-monitor/README.md) |
 | [`hardware/`](hardware/) | THISULINK foot probe BOM and PCB spec — VCA actuator, dual ADXL355, HX711 load cell, contact thermometer, Velcro stabilisation | [`README.md`](hardware/README.md) |
 | [`firmware/`](firmware/) | ESP32-S3 + ADXL345 Arduino firmware POC — ring buffer, IIR biquad DSP, radix-2 FFT, feature extraction | [`README.md`](firmware/thisulink-esp32s3-adxl345/arduino/thisulink_firmware/README.md) |
 | [`software/`](software/) | Flutter app architecture — dual-role (Health Worker + Patient), BLE probe connect, AI vital reminder system, 5-tab shell | [`README.md`](software/README.md) |
@@ -119,7 +119,7 @@ Patient (home — self-monitoring with AI daily reminders)
 | Mobile app | Flutter 3.19+, Riverpod 2, go_router 14, fl_chart |
 | BLE | flutter_blue_plus — 73-byte probe packet |
 | AI (retinal, on-device) | EfficientNet-B0 ONNX INT8 via onnxruntime-android |
-| AI (vitals) | XGBoost int8 via m2cgen → bare-metal ESP32-S3 |
+| Vitals Sync | Standard Bluetooth SIG Health Device Profiles (GATT: Blood Pressure 0x1810, Glucose 0x1808) |
 | AI (clinical assistant) | llama-3.3-70b-versatile via Groq (supervised routing) |
 | Backend | PocketBase (auth, DB, files, realtime, JS hooks) |
 | Infrastructure | Cloudflare Tunnel + Tailscale + Node.js/Express |
@@ -184,8 +184,8 @@ This system is a **research and screening-assistance prototype**. It is not a ce
 | Lavery et al., *Diabetes Care* 2007, PMID 17192326 | Thermometry threshold ΔT ≥ 2.2°C (> 4°F) between contralateral plantar sites |
 | Raman et al., *Indian J Ophthalmol* 2021, PMC 7942107 | Referable DR = ICDR grade ≥ 2 (Indian consensus) |
 | APTOS 2019, Aravind Eye Hospital, Kaggle | Retinal training dataset (3,385 images) |
-| PubMed PMID 40030275 | PPG-only cuffless BP — 25-study systematic review |
-| FDA Draft Guidance, January 2026 | Cuffless BP clinical performance testing requirements |
+| ADA Standards of Care, 2026 | Comprehensive glycemic and hypertension targets in diabetes care |
+| ISO 81060-2:2018 | Non-invasive sphygmomanometers — Clinical investigation of automated measurement type |
 | WHO South-East Asia DR Report | Rural screening motivation |
 
 ---
@@ -286,15 +286,16 @@ THISULINK's Class B detection targets the **mechanically stiff, neurologically i
 
 **Key differentiator**: Remidio FOP costs ₹4,12,000. THISULINK's retinal module uses the health worker's existing smartphone plus a low-cost 20D adapter and runs AI inference on-device when offline — reducing hardware cost by ~99 %. The trade-off is that AI grading replaces (but does not yet match) a trained ophthalmologist's reading at the point of care; a telemedicine ophthalmologist review is still required for Orange/Red triage cases.
 
-### Vitals Monitor
+### Vitals Integration (Blood Pressure & Blood Glucose)
 
-| Device | Approach | THISULINK equivalent |
-|---|---|---|
-| OMRON / A&D digital BP monitor | Oscillometric cuff | PPG-based cuffless BP (IEEE JBHI 2025, PMID 40030275) — research stage, not validated for regulatory submission |
-| Glucometer (Accu-Chek, OneTouch) | Finger-prick electrochemical | PPG-based non-invasive glucose — research stage only |
+Rather than attempting unvalidated custom cuffless optical BP or non-invasive glucose sensors that suffer from severe calibration drift and regulatory barriers, THISULINK interfaces directly with **standard, clinically validated Commercial Off-The-Shelf (COTS) devices** via Bluetooth Low Energy (BLE):
 
-> [!IMPORTANT]
-> PPG-based cuffless BP and non-invasive glucose are **research-stage methods**. They are not approved as replacements for cuff BP or glucometer readings. THISULINK presents them as supplementary indicators, not primary diagnostic measurements.
+| Measurement | Clinical Reference Device | BLE Integration Method | Clinical Advantage |
+|---|---|---|---|
+| **Blood Pressure** | Standard Digital Oscillometric Arm Cuff (e.g. Omron / A&D) | Standard Bluetooth SIG Blood Pressure Service (`0x1810`) | 100% clinically validated (ISO 81060-2 compliant), zero algorithmic drift |
+| **Blood Glucose** | Standard Clinical Glucometer (e.g. Accu-Chek / OneTouch BLE) | Standard Bluetooth SIG Glucose Service (`0x1808`) or BLE Bridge | Accurate capillary glucose reading conforming to ISO 15197 standards |
+
+This design isolates daily routine monitoring to gold-standard, regulatory-approved point-of-care hardware, directing THISULINK's novel hardware innovation where the true rural screening gaps lie: **plantar shear-wave elastography and automated non-mydriatic retinal screening.**
 
 ---
 
