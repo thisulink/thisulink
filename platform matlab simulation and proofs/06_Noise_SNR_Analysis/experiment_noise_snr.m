@@ -3,12 +3,12 @@
 % Validates ADXL355 Ultra-Low Noise Performance Across Noise Regimes
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 addpath(fullfile(projectRoot, '04_FFT_Analysis'));
@@ -17,7 +17,7 @@ addpath(fullfile(projectRoot, '04_FFT_Analysis'));
 simulation_parameters;
 
 %% Sensor Baseline Config
-bandwidth = sensor_bandwidth; % 150 Hz
+bandwidth = sensor_bandwidth; % 1000 Hz (ADXL355 LPF at 4 kHz ODR)
 bias = sensor_bias;           % 0.005 m/s^2
 
 %% Noise Density Sweep (from pristine laboratory grade to extreme industrial noise)
@@ -54,12 +54,12 @@ detected_frequency = zeros(numLevels, 1);
 phase_error_deg    = zeros(numLevels, 1);
 
 %% Run Noise Sweep
-rng(100);
+% Deterministic noise (identical on MATLAB and Octave): common/det_randn.m
 
 for i = 1:numLevels
     nd = noise_density_levels(i);
     noise_rms = nd * sqrt(bandwidth);
-    noise = noise_rms .* randn(size(true_acc));
+    noise = noise_rms .* det_randn(100 + i, size(true_acc));
     
     measured_acc = true_acc + bias + noise;
     
@@ -82,7 +82,7 @@ for i = 1:numLevels
     % Analytical phase difference
     phase_true = angle(sum(true_acc .* exp(-1i * 2 * pi * f_exc * t_sim)));
     phase_meas = angle(sum((measured_acc - mean(measured_acc)) .* exp(-1i * 2 * pi * f_exc * t_sim)));
-    phase_error_deg(i) = abs(phase_meas - phase_true) * (180 / pi);
+    phase_error_deg(i) = abs(angle(exp(1i * (phase_meas - phase_true)))) * (180 / pi);  % wrapped to [0, 180]
 end
 
 %% Console Output
@@ -106,22 +106,21 @@ for i = 1:numLevels
         detected_frequency(i), ...
         phase_error_deg(i));
 end
+fprintf('SNR = broadband (0-%.0f Hz) signal RMS / error RMS; the phase estimate\n', bandwidth);
+fprintf('uses coherent averaging at %.0f Hz and is far less noise-sensitive.\n', f_exc);
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 %% Plot 1: SNR vs Noise Density
 figure('Name', 'THISULINK - SNR vs Noise Density', 'Color', 'w');
 semilogx(noise_density_levels * 1e6 / 9.80665, snr_db, 'o-b', 'LineWidth', 1.8, 'MarkerFaceColor', 'b');
 hold on;
 xline(25, '--r', 'ADXL355 Nominal (25 \mug/\surdHz)', 'LineWidth', 1.5);
-yline(20, ':k', 'Clinical Phase Threshold (20 dB)', 'LineWidth', 1.2);
+yline(20, ':k', '20 dB reference', 'LineWidth', 1.2);
 xlabel('Sensor Noise Density (\mug/\surdHz)');
-ylabel('Signal-to-Noise Ratio (dB)');
+ylabel('Broadband SNR (dB)');
 title('THISULINK Plantar SWE Signal-to-Noise Ratio vs Accelerometer Noise Floor');
 grid on;
 saveas(gcf, fullfile(resultsFolder, 'snr_vs_noise.png'));

@@ -21,13 +21,31 @@ The Voice Coil Actuator (VCA) cannot physically trigger unless the HX711 registe
 
 ---
 
-## 3. Findings & Validation
-- **Trial 1 & 2 ($0.85\text{ N}, 1.32\text{ N}$)**: Automatically rejected (`INSUFFICIENT PRELOAD`), preventing wave launch during foot placement transition.
-- **Trial 3 & 4 ($1.51\text{ N}, 1.58\text{ N}$)**: Successfully cleared (`WAVE LAUNCH OK`), ensuring calibrated SWE measurements.
-- **Trial 5 & 6 ($1.85\text{ N}, 3.20\text{ N}$)**: Instantly interlocked (`EXCESSIVE CONTACT`), protecting patient comfort and preventing hyperelastic non-linear tissue stiffening artifacts.
+## 3. Results (simulation)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
+
+| Trial | True preload | Mean measured (100 samples) | Decision |
+|---|---|---|---|
+| 1 | 0.85 N | 0.850 N | lockout (insufficient) |
+| 2 | 1.32 N | 1.321 N | lockout (insufficient) |
+| 3 | 1.51 N | 1.511 N | cleared |
+| 4 | 1.58 N | 1.581 N | cleared |
+| 5 | 1.85 N | 1.851 N | lockout (excessive) |
+| 6 | 3.20 N | 3.201 N | lockout (excessive) |
+
+All six decisions are correct. With σ = 0.015 N and 100-sample averaging (σ_mean ≈ 0.0015 N) misclassification is only possible within a few mN of the 1.40 / 1.60 N limits; this edge case is not tested here.
+
+## 4. Limitations
+- Gaussian noise on a constant force; no drift, creep, temperature effects, or foot movement during the 300 ms settle window. Described firmware behaviour is a specification, not tested firmware.
+
+## 5. Generated Figures
+- `load_cell_true_vs_measured.png`, `load_cell_validation_limits.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/load_cell_true_vs_measured.png`: True physical force vs HX711 24-bit digitized force.
-- `results/load_cell_validation_limits.png`: Decision boundary plot illustrating interlock clearances and lockouts.
+## How to Run
+```matlab
+cd('08_Load_Cell_Validation')
+experiment_load_cell            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/08_Load_Cell_Validation/` (git-ignored).

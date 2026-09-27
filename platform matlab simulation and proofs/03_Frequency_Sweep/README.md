@@ -20,17 +20,29 @@ $$\phi_a(\omega) = \text{atan2}\left(\text{Im}\{H_a(\omega)\}, \text{Re}\{H_a(\o
 
 ---
 
-## 3. Findings & Resonance Migration
-As tissue glycation progresses, the peak acceleration resonance shifts systematically upward:
-- Healthy: $21.2\text{ Hz}$ (Peak Acc: $2.8\text{ m/s}^2$)
-- Early Glycation: $29.1\text{ Hz}$ (Peak Acc: $3.1\text{ m/s}^2$)
-- Diabetic Neuropathy: $38.3\text{ Hz}$ (Peak Acc: $3.4\text{ m/s}^2$)
+## 3. Results (simulation)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
 
-Tracking the resonant peak across the chirp sweep provides an independent secondary mechanical validation alongside dual-pickup shear wave speed time-of-flight estimation.
+| Class | Theoretical $f_n$ | Peak of acceleration FRF (1 Hz grid) | Peak acceleration amplitude |
+|---|---|---|---|
+| Healthy | 21.22 Hz | 22 Hz | 5.45 m/s² |
+| Early glycation | 29.06 Hz | 30 Hz | 5.81 m/s² |
+| Neuropathy | 38.26 Hz | 40 Hz | 5.46 m/s² |
+
+The acceleration FRF peaks slightly above $f_n$ (by $1/\sqrt{1-2\zeta^2}$ with $\zeta \approx 0.2$), and tends to $F_0/m = 2.22$ m/s² at high frequency.
+
+## 4. Limitations
+- Analytical steady-state FRF of the lumped model (no actual chirp time signal is simulated).
+- The rationale bullets in Section 1 (below 10 Hz motion noise, above 300 Hz attenuation) are design arguments, not outputs of this script. Experiment 10 shows that attenuation already limits the usable band to 100-200 Hz at the 145 mm pickup.
+
+## 5. Generated Figures
+- `acceleration_frequency_response.png`, `displacement_frequency_response.png`, `phase_response.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/acceleration_frequency_response.png`: Acceleration FRF and resonant peaks.
-- `results/displacement_frequency_response.png`: Dynamic indentation amplitude vs frequency.
-- `results/phase_response.png`: Acceleration vs force phase angle across $10 - 300\text{ Hz}$.
+## How to Run
+```matlab
+cd('03_Frequency_Sweep')
+experiment_frequency_sweep            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/03_Frequency_Sweep/` (git-ignored).

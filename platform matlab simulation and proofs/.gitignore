@@ -1,0 +1,4 @@
+# outputs/ (figures + run log) is committed on purpose so the graphs can be
+# viewed on GitHub; re-running master_run_all.m regenerates it in place.
+# Legacy per-experiment output folders from older versions of the scripts
+*/results/

@@ -17,7 +17,9 @@ N = length(signal);
 signal_ac = signal - mean(signal);
 
 % Apply Hann window to eliminate spectral leakage
-w = hann(N);
+% (computed explicitly: hann() needs the Signal Processing Toolbox in MATLAB
+%  and the signal package in Octave)
+w = 0.5 - 0.5 * cos(2 * pi * (0:N-1)' / (N - 1));
 windowed_signal = signal_ac .* w;
 
 % Coherent gain factor of Hann window

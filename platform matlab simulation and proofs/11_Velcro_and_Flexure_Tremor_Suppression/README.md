@@ -4,7 +4,7 @@
 During frontline diabetic screening, patients (particularly elderly individuals or those suffering from diabetic autonomic neuropathy or Parkinsonism) frequently exhibit involuntary lower-extremity postural muscle tremors in the **$2 - 5\text{ Hz}$ frequency band**.
 
 In an unconstrained platform:
-- Involuntary foot tremors produce large displacement excursions ($\sim 1.50\text{ mm}$), causing probe misalignment and severe phase jitter in the propagating shear waves ($> 40^\circ$).
+- Involuntary foot tremors produce large displacement excursions ($\sim 1.50\text{ mm}$), which can misalign the probe and corrupt the phase measurement (quantified with a simple proxy in Section 3).
 - To eliminate this critical error source, **THISULINK** integrates:
   1. **Medical-Grade Velcro Stabilization Straps**: Dual hook-and-loop adjustable belts across the instep and heel to clamp the foot firmly against the EVA registration bed.
   2. **Planar Spring Flexures**: Beryllium copper planar flexures that guide the Voice Coil Actuator along the normal $Z$-axis while presenting high lateral stiffness ($k_{\text{lat}} = 7500\text{ N/m}$) against shear rocking.
@@ -26,16 +26,32 @@ The system stiffness increases by **40-fold**.
 
 ---
 
-## 3. Findings & Quantitative Proof
-- **Tremor Displacement**: Reduced from **$1.50\text{ mm}$** down to **$0.038\text{ mm}$ ($38\ \mu\text{m}$)**.
-- **Motion Attenuation**: **$\mathbf{97.5\%}$ motion reduction ($31.8\text{ dB}$ attenuation)**.
-- **Shear Wave Phase Jitter**: Clamped from $\pm 42.1^\circ$ down to **$\pm 0.78^\circ$**, well within the $< 1.0^\circ$ clinical tolerance limit.
+## 3. Results (simulation)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
 
-This simulation provides conclusive engineering evidence validating the Velcro strap CAD upgrade implemented on the THISULINK mechanical platform.
+The tremor force amplitude is scaled (0.390 N) so that the free foot reaches the **assumed** 1.50 mm peak excursion.
+
+| Condition | Peak displacement | Phase-error proxy |
+|---|---|---|
+| Unconstrained ($k$ = 500 N/m) | 1.50 mm | ±7.3° |
+| Velcro + flexure ($k$ = 20,000 N/m) | 0.0195 mm (19.5 µm) - passes 0.050 mm limit | ±0.09° - passes 1° limit |
+
+- Peak-motion attenuation 98.7 % (37.7 dB); tremor-band (2-5 Hz) PSD rejection 39.0 dB.
+- The unconstrained natural frequency (3.25 Hz) lies inside the tremor band, so the free foot is resonance-amplified; that is why the attenuation exceeds the 40x stiffness ratio.
+
+## 4. Limitations
+- Lumped 1-DOF foot model; strap and flexure stiffness/damping are design assumptions, not measured.
+- The "phase-error proxy" ($k_w \cdot x(t)$) assumes the foot motion changes the propagation path seen by one pickup; in practice both pickups move with the foot and much of it cancels, so it is a pessimistic indicator only. The earlier ±42° / ±0.78° figures were not reproducible.
+- The 1.50 mm free-foot tremor amplitude is an assumption.
+
+## 5. Generated Figures
+- `tremor_displacement_suppression.png`, `phase_jitter_suppression.png`, `tremor_psd_rejection.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/tremor_displacement_suppression.png`: Time-domain tremor suppression comparing free vs Velcro-clamped foot.
-- `results/phase_jitter_suppression.png`: Induced shear wave phase angle jitter.
-- `results/tremor_psd_rejection.png`: Power Spectral Density (PSD) showing $> 30\text{ dB}$ rejection across the $2 - 5\text{ Hz}$ tremor band.
+## How to Run
+```matlab
+cd('11_Velcro_and_Flexure_Tremor_Suppression')
+experiment_stabilization            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/11_Velcro_and_Flexure_Tremor_Suppression/` (git-ignored).

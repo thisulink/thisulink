@@ -3,12 +3,12 @@
 % Spectral Purity, Total Harmonic Distortion (THD), and Frequency Extraction
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 addpath(expDir);
@@ -71,14 +71,17 @@ fprintf('Fundamental Peak Amplitude    : %.4f m/s^2\n', peakMagnitude);
 fprintf('2nd Harmonic Amplitude        : %.4f m/s^2 (%.2f Hz)\n', mag_2h, f(idx_2h));
 fprintf('3rd Harmonic Amplitude        : %.4f m/s^2 (%.2f Hz)\n', mag_3h, f(idx_3h));
 fprintf('Total Harmonic Distortion THD : %.2f%% (%.2f dB)\n', thd_percent, thd_db);
-fprintf('Harmonic Purity Status        : EXCELLENT (THD < 5%% threshold)\n');
+if thd_percent < 5
+    fprintf('Harmonic Purity Check         : PASS (THD < 5%% design threshold)\n');
+else
+    fprintf('Harmonic Purity Check         : FAIL (THD >= 5%% design threshold)\n');
+end
+fprintf('NOTE: the 2nd/3rd harmonic levels (3.5%% / 1.2%%) are ASSUMED model inputs;\n');
+fprintf('      this experiment verifies the FFT/THD pipeline, not the real actuator.\n');
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 %% Plot 1: Steady-State Acceleration
 figure('Name', 'THISULINK - Steady State Acceleration', 'Color', 'w');

@@ -3,12 +3,12 @@
 % Dynamic Mechanical Transfer Function & Resonance Peak Tracking
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 
@@ -87,25 +87,24 @@ end
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 colors = [0.0 0.45 0.74; 0.85 0.33 0.10; 0.64 0.08 0.18];
 
 %% Plot 1: Acceleration Frequency Response
 figure('Name', 'THISULINK - Acceleration Frequency Response', 'Color', 'w');
 hold on;
+h_lines = zeros(numClasses, 1);
 for c_idx = 1:numClasses
-    plot(frequencies, acc_amp(:, c_idx), 'LineWidth', 1.8, 'Color', colors(c_idx, :));
+    h_lines(c_idx) = plot(frequencies, acc_amp(:, c_idx), 'LineWidth', 1.8, 'Color', colors(c_idx, :));
     plot(peak_freq_val(c_idx), peak_acc_val(c_idx), 'o', 'MarkerSize', 8, ...
         'MarkerFaceColor', colors(c_idx, :), 'MarkerEdgeColor', 'k');
 end
 xlabel('Chirp Excitation Frequency (Hz)');
 ylabel('Acceleration Amplitude (m/s^2)');
 title('THISULINK Acceleration Frequency Response (10 - 300 Hz Chirp)');
-legend(class_names, 'Location', 'northeast');
+% Legend on the line handles only (the peak markers would otherwise shift the labels)
+legend(h_lines, class_names, 'Location', 'southeast');
 grid on;
 saveas(gcf, fullfile(resultsFolder, 'acceleration_frequency_response.png'));
 

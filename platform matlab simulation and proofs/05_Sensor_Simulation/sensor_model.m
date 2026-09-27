@@ -7,9 +7,16 @@ function [measured_acc, info] = sensor_model(true_acc, params)
 %   params   - Struct containing sensor hardware parameters:
 %              .range_g        - Measurement range [+/- g] (e.g. 2.048)
 %              .bits           - ADC resolution [bits] (20)
-%              .bandwidth      - Internal digital filter cut-off [Hz] (150)
+%              .bandwidth      - Digital LPF corner = noise bandwidth [Hz] (1000 at 4 kHz ODR)
 %              .noise_density  - Noise spectral density [m/s^2/sqrt(Hz)]
 %              .bias           - Sensor DC offset bias [m/s^2]
+%              .seed           - (optional) seed for common/det_randn, which gives
+%                                identical noise on MATLAB and Octave. If absent,
+%                                randn() is used.
+%
+% Simplifications: white Gaussian noise with RMS = density*sqrt(bandwidth);
+% the digital low-pass filter's amplitude/phase response is NOT modelled
+% (it is identical on both pickups, so it cancels in the phase difference).
 %
 % Outputs:
 %   measured_acc - Simulated digitized output [m/s^2]
@@ -20,7 +27,11 @@ range_limit = params.range_g * g;
 
 % Accelerometer internal Gaussian thermal & flicker noise
 noise_rms = params.noise_density * sqrt(params.bandwidth);
-noise = noise_rms .* randn(size(true_acc));
+if isfield(params, 'seed')
+    noise = noise_rms .* det_randn(params.seed, size(true_acc));
+else
+    noise = noise_rms .* randn(size(true_acc));
+end
 
 % Biased and noise-corrupted physical signal
 noisy_acc = true_acc + params.bias + noise;

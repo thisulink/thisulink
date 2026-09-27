@@ -4,12 +4,12 @@
 % Bandwidth: 10 - 300 Hz Diagnostic Chirp
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 
@@ -68,14 +68,24 @@ fprintf('  Peak Output Dynamic Force   : %.4f N (%.1f mN)\n', F_peak_nom, F_peak
 fprintf('  RMS Dynamic Force           : %.4f N (%.1f mN)\n', F_rms_nom, F_rms_nom*1000);
 fprintf('  Average Electrical Power    : %.4f W (%.1f mW)\n', P_elec_rms, P_elec_rms*1000);
 fprintf('  Target Dynamic Force F0     : %.3f N (100 mN safe skin contact)\n', F0);
-fprintf('  Power Status                : ULTRA-LOW POWER (< 0.1 W, Full Battery Autonomy)\n');
+if P_elec_rms < 0.1
+    fprintf('  Power Check                 : PASS (coil dissipation < 100 mW)\n');
+else
+    fprintf('  Power Check                 : FAIL (coil dissipation >= 100 mW)\n');
+end
+% Drive voltage that would give exactly F0 (static-coil model)
+V_for_F0 = (F0 / Kf) * Z_mag_nom;
+fprintf('  Drive voltage for F0 = %.0f mN: %.3f V peak (%.1f mW)\n', F0*1000, V_for_F0, ...
+    ((F0/Kf)/sqrt(2))^2 * R * 1000);
+% VCA-only energy per 3 s scan and scans per 3.7 V / 2500 mAh cell
+E_scan_J = P_elec_rms * 3.0;
+fprintf('  VCA energy per 3 s scan     : %.3f J (VCA only; MCU, BLE, sensors excluded)\n', E_scan_J);
+fprintf('NOTE: static-coil model (R + jwL) - back-EMF and the mechanical load are\n');
+fprintf('      neglected, so current/force are upper bounds at the given voltage.\n');
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 %% Plot 1: Electrical Impedance vs Frequency
 figure('Name', 'THISULINK - VCA Impedance', 'Color', 'w');

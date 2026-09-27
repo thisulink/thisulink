@@ -3,12 +3,12 @@
 % Proves Necessity of THISULINK 1.50 N Contact Interlock Gate
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 
@@ -47,11 +47,16 @@ for i = 1:numForces
     fn_curr = (1 / (2 * pi)) * sqrt(eff_k / m);
     natural_frequency(i) = fn_curr;
     
-    % Equivalent shear modulus and wave velocity shift
-    % mu_eff = k_eff / (8 * r0) where r0 = contact radius = 5 mm
-    r0 = 0.005;
-    mu_eff = eff_k / (8 * r0);
-    cs_curr = sqrt(mu_eff / rho_tissue);
+    % Apparent shear modulus and wave speed shift.
+    % Assumption: the apparent shear modulus scales with the same relative
+    % pre-stress factor as the contact stiffness, mu_eff = mu_A * k_eff / k_A.
+    % (The previous rigid-punch estimate mu = k/(8*r0) gave 20 kPa for Class 1,
+    % inconsistent with mu_A = 14.5 kPa used everywhere else.)
+    mu_eff = mu_A * eff_k / baseline_k;
+    % Apparent (viscoelastic) phase velocity at f_exc from the shared model
+    [~, wave_eff] = shear_wave_propagation_model(t, zeros(size(t)), delta_x, ...
+        mu_eff, eta_A, rho_tissue, f_exc);
+    cs_curr = wave_eff.cs;
     effective_cs(i) = cs_curr;
     effective_E_kPa(i) = (3 * mu_eff) / 1000;
     
@@ -62,11 +67,17 @@ for i = 1:numForces
     
     % Error relative to calibrated target 1.50 N preload
     eff_k_target = baseline_k;
-    measurement_error_percent(i) = abs(eff_k - eff_k_target) / eff_k_target * 100;
+    measurement_error_percent(i) = (eff_k - eff_k_target) / eff_k_target * 100;  % signed
 end
 
-%% Find Interlock Safe Window Indices
-idx_nominal = find(contact_forces >= F_preload_min & contact_forces <= F_preload_max);
+%% Worst case INSIDE the interlock window (evaluated at the window edges)
+k_win   = baseline_k + alpha * ([F_preload_min, F_preload_max] - target_force);
+err_win = max(abs(k_win - baseline_k)) / baseline_k * 100;
+fn_win  = max(abs((1/(2*pi)) * sqrt(k_win / m) - fn_A));
+[~, wv_lo] = shear_wave_propagation_model(t, zeros(size(t)), delta_x, mu_A*k_win(1)/baseline_k, eta_A, rho_tissue, f_exc);
+[~, wv_0 ] = shear_wave_propagation_model(t, zeros(size(t)), delta_x, mu_A, eta_A, rho_tissue, f_exc);
+[~, wv_hi] = shear_wave_propagation_model(t, zeros(size(t)), delta_x, mu_A*k_win(2)/baseline_k, eta_A, rho_tissue, f_exc);
+cs_win  = max(abs([wv_lo.cs, wv_hi.cs] - wv_0.cs));
 
 %% Console Output
 fprintf('\n========================================================================\n');
@@ -95,13 +106,17 @@ for i = 1:numForces
         effective_cs(i), effective_E_kPa(i), acceleration_amp(i), ...
         measurement_error_percent(i), interlock_flag);
 end
+fprintf('------------------------------------------------------------------------\n');
+fprintf('Uncontrolled range %.1f-%.1f N  : stiffness error %+.1f%% to %+.1f%%\n', ...
+    contact_forces(1), contact_forces(end), min(measurement_error_percent), max(measurement_error_percent));
+fprintf('Inside interlock window        : |stiffness error| <= %.2f%%, |d fn| <= %.2f Hz, |d cs| <= %.3f m/s\n', ...
+    err_win, fn_win, cs_win);
+fprintf('NOTE: linear pre-stress model with an ASSUMED alpha = %.0f (N/m)/N; loss of\n', alpha);
+fprintf('      coupling at very low preload is not modelled.\n');
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 %% Plot 1: Contact Preload vs Effective Stiffness
 figure('Name', 'THISULINK - Contact Preload Stiffening', 'Color', 'w');
@@ -125,12 +140,15 @@ figure('Name', 'THISULINK - Preload Error', 'Color', 'w');
 plot(contact_forces, measurement_error_percent, 's-r', 'LineWidth', 1.8, 'MarkerFaceColor', 'r');
 hold on;
 fill([F_preload_min, F_preload_max, F_preload_max, F_preload_min], ...
-     [0, 0, 55, 55], [0.85 1.0 0.85], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
-yline(2.25, '--g', 'Max Interlock Error (+/- 2.25%)', 'LineWidth', 1.5);
+     [min(measurement_error_percent)-5, min(measurement_error_percent)-5, ...
+      max(measurement_error_percent)+5, max(measurement_error_percent)+5], ...
+     [0.85 1.0 0.85], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
+yline(err_win, '--g', sprintf('+%.2f%% (window edge)', err_win), 'LineWidth', 1.5);
+yline(-err_win, '--g', sprintf('-%.2f%% (window edge)', err_win), 'LineWidth', 1.5);
 xlabel('Applied Contact Preload Force (N)');
-ylabel('Measurement Error Relative to Baseline (%)');
+ylabel('Stiffness Error Relative to 1.50 N Baseline (%)');
 title('Plantar Modulus Error vs Contact Force: Why 1.5 N Interlock is Mandatory');
-legend('Uncontrolled Operator Error', 'THISULINK Interlock Zone (< 2.3% Error)', 'Location', 'northwest');
+legend('Uncontrolled Operator Error', sprintf('Interlock Zone (|error| <= %.2f%%)', err_win), 'Location', 'northwest');
 grid on;
 saveas(gcf, fullfile(resultsFolder, 'preload_error_curve.png'));
 

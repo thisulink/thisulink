@@ -3,12 +3,12 @@
 % Healthy Compliant vs Early Glycation vs Severe Diabetic Neuropathy
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 
@@ -37,6 +37,7 @@ acceleration_all = zeros(N_pts, numClasses);
 peak_acc         = zeros(numClasses, 1);
 rms_acc          = zeros(numClasses, 1);
 peak_disp        = zeros(numClasses, 1);
+ss_disp          = zeros(numClasses, 1);
 
 %% Initial State
 x0 = [0; 0];
@@ -57,7 +58,8 @@ for i = 1:numClasses
     velocity_all(:, i)     = vel_curr;
     acceleration_all(:, i) = acc_curr;
     
-    peak_disp(i) = max(abs(disp_curr));
+    peak_disp(i) = max(abs(disp_curr));                 % includes start-up transient
+    ss_disp(i)   = max(abs(disp_curr(t >= 0.5)));       % steady state
     peak_acc(i)  = max(abs(acc_curr));
     rms_acc(i)   = rms(acc_curr);
 end
@@ -76,17 +78,15 @@ for i = 1:numClasses
     fprintf('  Young Modulus (E)       : %.1f kPa\n', E_values(i)/1000);
     fprintf('  Shear Wave Speed (cs)   : %.2f m/s\n', cs_values(i));
     fprintf('  Natural Frequency (fn)  : %.2f Hz\n', fn(i));
-    fprintf('  Peak Displacement       : %.4f mm\n', peak_disp(i)*1000);
+    fprintf('  Steady-State Disp. Amp. : %.4f mm\n', ss_disp(i)*1000);
+    fprintf('  Peak Displacement       : %.4f mm (incl. start-up transient)\n', peak_disp(i)*1000);
     fprintf('  Peak Acceleration       : %.4f m/s^2\n', peak_acc(i));
     fprintf('  RMS Acceleration        : %.4f m/s^2\n', rms_acc(i));
 end
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 colors = [0.0 0.45 0.74; 0.85 0.33 0.10; 0.64 0.08 0.18];
 
@@ -118,11 +118,7 @@ saveas(gcf, fullfile(resultsFolder, 'stiffness_acceleration.png'));
 
 %% Plot 3: Natural Frequency Resonance Shift
 figure('Name', 'THISULINK - Resonance Shift', 'Color', 'w');
-b1 = bar(fn, 0.55);
-b1.FaceColor = 'flat';
-b1.CData(1,:) = colors(1,:);
-b1.CData(2,:) = colors(2,:);
-b1.CData(3,:) = colors(3,:);
+bar_colored(fn, 0.55, colors);
 set(gca, 'XTick', 1:3, 'XTickLabel', {'Healthy', 'Early Glycated', 'Diabetic Neuropathy'});
 ylabel('Natural Frequency f_n (Hz)');
 title('THISULINK Plantar Tissue Resonance Shift Under Glycation');
@@ -135,9 +131,7 @@ saveas(gcf, fullfile(resultsFolder, 'natural_frequency_comparison.png'));
 %% Plot 4: Shear Wave Speed & Modulus Comparison
 figure('Name', 'THISULINK - Shear Speed and Elasticity', 'Color', 'w');
 subplot(1, 2, 1);
-b_cs = bar(cs_values, 0.5);
-b_cs.FaceColor = 'flat';
-b_cs.CData(1,:) = colors(1,:); b_cs.CData(2,:) = colors(2,:); b_cs.CData(3,:) = colors(3,:);
+bar_colored(cs_values, 0.5, colors);
 set(gca, 'XTick', 1:3, 'XTickLabel', {'Healthy', 'Early', 'Neuropathic'});
 ylabel('Shear Wave Speed c_s (m/s)');
 title('Shear Wave Speed (m/s)');
@@ -147,9 +141,7 @@ for i = 1:3
 end
 
 subplot(1, 2, 2);
-b_E = bar(E_values / 1000, 0.5);
-b_E.FaceColor = 'flat';
-b_E.CData(1,:) = colors(1,:); b_E.CData(2,:) = colors(2,:); b_E.CData(3,:) = colors(3,:);
+bar_colored(E_values / 1000, 0.5, colors);
 set(gca, 'XTick', 1:3, 'XTickLabel', {'Healthy', 'Early', 'Neuropathic'});
 ylabel('Young Modulus E (kPa)');
 title('Plantar Elastic Modulus (kPa)');

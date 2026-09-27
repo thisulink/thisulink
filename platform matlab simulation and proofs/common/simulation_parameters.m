@@ -3,10 +3,12 @@
 % Hardware Subsystem: Plantar Biomechanical Shear Wave Elastography (SWE) Platform
 % Reference: Smart India Hackathon (SIH) 2026 Grand Finale
 %
-% All parameters represent validated biomechanical and electromechanical properties
-% for clinical frontline screening of diabetic peripheral neuropathy and ulceration risk.
-
-clearvars -except ans
+% Shared parameter script for all experiments (run it as a script; it defines
+% variables in the caller's workspace and deliberately does NOT clear anything).
+%
+% IMPORTANT: these are MODEL ASSUMPTIONS for a simulation study. Tissue values
+% are literature-inspired placeholders, not clinically validated measurements,
+% and the hardware values are design targets, not bench-measured data.
 
 %% =========================================================================
 %% 1. ACTUATOR SUBSYSTEM (Voice Coil Actuator - VCA)
@@ -37,18 +39,35 @@ contact_alpha    = 180.0;   % Contact stiffening coefficient [(N/m)/N]
 %% =========================================================================
 %% 3. SENSOR SUBSYSTEM (Dual Analog Devices ADXL355 Accelerometers)
 %% =========================================================================
+% The production probe uses 2 x ADXL355 (hardware/README.md). The ADXL355
+% output data rate (ODR) is programmable up to 4000 Hz and its digital
+% low-pass filter corner is ~ODR/4, i.e. 1000 Hz at ODR = 4000 Hz. This
+% covers the full 10-300 Hz excitation sweep.
+% (The earlier value of 150 Hz was below the sweep band and has been fixed.)
+% NOTE: the ESP32-S3 + ADXL345 proof-of-concept firmware samples at 200 Hz
+% ODR (Nyquist 100 Hz), so that POC board can only cover ~10-90 Hz.
 sensor_range_g     = 2.048;     % Full-scale range [+/- g]
 sensor_bits        = 20;        % ADC resolution [bits]
-sensor_bandwidth   = 150.0;     % Internal digital filter cut-off frequency [Hz]
+sensor_odr         = 4000.0;    % Output data rate [Hz] (ADXL355 maximum)
+sensor_bandwidth   = sensor_odr / 4;  % Digital LPF corner = noise bandwidth [Hz] (1000 Hz)
 sensor_noise_dens  = 0.000245;  % Noise density: 25 ug/sqrt(Hz) converted to m/s^2/sqrt(Hz)
 sensor_bias        = 0.0050;    % DC offset bias [m/s^2]
 x_sensor1          = 0.105;     % Distance from VCA tip to Proximal Pickup 1 [m] (105 mm)
 x_sensor2          = 0.145;     % Distance from VCA tip to Distal Pickup 2 [m] (145 mm)
 delta_x            = x_sensor2 - x_sensor1; % Inter-sensor gauge separation [m] (40 mm)
+% Phase-wrapping limit of the 40 mm baseline: the inter-sensor phase lag is
+% dphi = 2*pi*f*delta_x/cs. It exceeds pi (ambiguous for a wrapped estimate)
+% above f = cs/(2*delta_x) and a full cycle above f = cs/delta_x. For
+% cs = 3.7-8 m/s that is ~46-100 Hz (pi) and ~93-200 Hz (2*pi), so a
+% 10-300 Hz sweep MUST be phase-unwrapped across frequency (Experiment 10).
 
 %% =========================================================================
 %% 4. PLANTAR SOFT-TISSUE BIOMECHANICAL MODELS
 %% =========================================================================
+% cs_X below is the purely ELASTIC speed sqrt(mu/rho). With viscosity eta the
+% Kelvin-Voigt phase velocity is dispersive and slightly higher (see
+% common/shear_wave_propagation_model.m), e.g. ~3.81 m/s vs 3.72 m/s for
+% Class 1 at 50 Hz.
 rho_tissue = 1050.0;    % Plantar soft tissue mass density [kg/m^3]
 
 % --- Class 1: Healthy Plantar Tissue (Compliant Control) ---
@@ -118,4 +137,8 @@ fprintf('CLASS 2: EARLY GLYCATION / MILD NEUROPATHY\n');
 fprintf('  k = %.1f N/m | fn = %.2f Hz | cs = %.2f m/s | E = %.1f kPa\n', k_B, fn_B, cs_B, E_B/1000);
 fprintf('CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK\n');
 fprintf('  k = %.1f N/m | fn = %.2f Hz | cs = %.2f m/s | E = %.1f kPa\n', k_C, fn_C, cs_C, E_C/1000);
+fprintf('ADXL355 ODR / Bandwidth   : %.0f Hz / %.0f Hz (sweep %.0f - %.0f Hz)\n', ...
+    sensor_odr, sensor_bandwidth, f_start, f_end);
+fprintf('Phase-wrap limit (40 mm)  : dphi = pi at %.0f / %.0f / %.0f Hz (Class 1/2/3, elastic cs)\n', ...
+    cs_A/(2*delta_x), cs_B/(2*delta_x), cs_C/(2*delta_x));
 fprintf('========================================================================\n\n');

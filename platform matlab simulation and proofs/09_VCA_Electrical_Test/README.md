@@ -20,18 +20,27 @@ $$P_{\text{elec}} = I_{\text{rms}}^2 \cdot R$$
 
 ---
 
-## 3. Results Summary
-- **At $50.0\text{ Hz}$ Nominal Center**:
-  - $|Z| = \mathbf{8.21\ \Omega}$
-  - Peak Current: $\mathbf{146.2\text{ mA}}$ ($I_{\text{rms}} \approx 103.4\text{ mA}$)
-  - Output Force: $\mathbf{350.8\text{ mN}}$ peak capacity (attenuated digitally to calibrated $100\text{ mN}$)
-  - Power Dissipation: $\mathbf{87.7\text{ mW}}$ ($\approx 0.088\text{ W}$)
-- **Battery Autonomy**: Consuming less than $90\text{ mW}$ during an active $3\text{-second}$ sweep, a standard $3.7\text{ V}, 2500\text{ mAh}$ Li-ion battery can perform over **$5,000$ consecutive patient triage scans** on a single charge.
+## 3. Results (simulation, 50 Hz, $V_0$ = 1.20 V peak)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
+
+- $|Z|$ = 8.21 Ω (phase 2.6°), peak current 146.2 mA (103.4 mA RMS)
+- Force capacity 350.8 mN peak at 1.20 V; coil dissipation 87.6 mW (< 100 mW check passes)
+- For exactly $F_0$ = 100 mN only 0.342 V peak is needed (≈ 7 mW)
+- VCA energy per 3 s scan: 0.263 J at 1.20 V (VCA only)
+
+The earlier claim of "> 5,000 scans per charge" is not computed by this script: it would require the MCU, BLE, sensor and thermal-camera power budget, which are not modelled.
+
+## 4. Limitations
+- Static coil model $Z = R + j\omega L$; back-EMF ($K_e$ is defined but unused) and the mechanical load are neglected, so current and force are upper bounds. Parameters are datasheet-style assumptions, not measurements of a specific actuator.
+
+## 5. Generated Figures
+- `vca_impedance.png`, `vca_current_response.png`, `vca_force_response.png`, `vca_power_consumption.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/vca_impedance.png`: Electrical impedance curve ($1 - 500\text{ Hz}$).
-- `results/vca_current_response.png`: Peak coil drive current vs frequency.
-- `results/vca_force_response.png`: Force output capacity across diagnostic sweep.
-- `results/vca_power_consumption.png`: Power dissipation vs $350\text{ mW}$ battery budget.
+## How to Run
+```matlab
+cd('09_VCA_Electrical_Test')
+experiment_vca            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/09_VCA_Electrical_Test/` (git-ignored).

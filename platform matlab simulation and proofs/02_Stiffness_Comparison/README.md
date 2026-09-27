@@ -22,14 +22,29 @@ $$f_n = \frac{1}{2\pi}\sqrt{\frac{k}{m}}$$
 
 ---
 
-## 3. Results Summary
-- Plantar shear wave velocity increases from $3.72\text{ m/s}$ (healthy) to $8.05\text{ m/s}$ (neuropathic) — a **$> 116\%$ velocity change**, providing a massive diagnostic dynamic range far exceeding standard monofilament sensory thresholds.
-- Dynamic compliance displacement decreases from $0.028\text{ mm}$ down to $0.011\text{ mm}$.
+## 3. Results (simulation)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
+
+| Class | $k$ (N/m) | $f_n$ (Hz) | $c_s$ elastic (m/s) | $E$ (kPa) | Steady-state displacement @ 50 Hz | Peak accel. incl. transient |
+|---|---|---|---|---|---|---|
+| Healthy | 800 | 21.22 | 3.72 | 43.5 | 0.0269 mm | 3.20 m/s² |
+| Early glycation | 1500 | 29.06 | 5.52 | 96.0 | 0.0322 mm | 3.97 m/s² |
+| Neuropathy | 2600 | 38.26 | 8.05 | 204.0 | 0.0431 mm | 4.72 m/s² |
+
+- The elastic shear speed rises by ~116 % from Class 1 to Class 3 (by construction of the assumed $\mu$ values).
+- At 50 Hz all classes are driven **above** resonance (mass-dominated), so the steady-state displacement *increases* with stiffness here (stiffer tissue is closer to resonance). The earlier README statement "0.028 mm → 0.011 mm" was not what the model produces.
+
+## 4. Limitations
+- The three classes are assumed parameter sets ("research bands"), not clinically validated stages.
+
+## 5. Generated Figures
+- `stiffness_displacement.png`, `stiffness_acceleration.png`, `natural_frequency_comparison.png`, `shear_speed_modulus_comparison.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/stiffness_displacement.png`: Temporal dynamic displacement waveforms.
-- `results/stiffness_acceleration.png`: Temporal surface acceleration comparison.
-- `results/natural_frequency_comparison.png`: Fundamental resonance frequency shift across classes.
-- `results/shear_speed_modulus_comparison.png`: Shear speed $c_s$ and Young's modulus $E$ across diagnostic classes.
+## How to Run
+```matlab
+cd('02_Stiffness_Comparison')
+experiment_stiffness            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/02_Stiffness_Comparison/` (git-ignored).

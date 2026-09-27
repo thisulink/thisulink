@@ -4,12 +4,12 @@
 % Interlock Window: 1.50 N +/- 0.10 N (1.40 N - 1.60 N)
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 
@@ -36,18 +36,18 @@ true_preloads = [0.85; 1.32; 1.51; 1.58; 1.85; 3.20]; % [N]
 numTrials = length(true_preloads);
 
 %% Simulate 24-Bit Load Cell Measurements (100 samples per trial at 80 Hz)
-rng(2026);
+% Deterministic noise (identical on MATLAB and Octave): common/det_randn.m
 samples_per_trial = 100;
 t_trial = (0:samples_per_trial-1)' / 80; % 80 Hz load cell sampling rate
 
 measured_trials = zeros(samples_per_trial, numTrials);
 mean_measured   = zeros(numTrials, 1);
 std_measured    = zeros(numTrials, 1);
-interlock_state = strings(numTrials, 1);
+interlock_state = cell(numTrials, 1);
 wave_launch_ok  = false(numTrials, 1);
 
 for i = 1:numTrials
-    noise_vec = sigma_F .* randn(samples_per_trial, 1);
+    noise_vec = sigma_F .* det_randn(2026 + i, samples_per_trial);
     measured_trials(:, i) = true_preloads(i) + noise_vec;
     
     mean_val = mean(measured_trials(:, i));
@@ -56,13 +56,13 @@ for i = 1:numTrials
     
     % THISULINK Hardware Preload State Machine
     if mean_val < F_min
-        interlock_state(i) = "LOCKOUT: INSUFFICIENT PRELOAD (< 1.40 N)";
+        interlock_state{i} = 'LOCKOUT: INSUFFICIENT PRELOAD (< 1.40 N)';
         wave_launch_ok(i)  = false;
     elseif mean_val > F_max
-        interlock_state(i) = "LOCKOUT: EXCESSIVE TISSUE PRE-COMPRESSION (> 1.60 N)";
+        interlock_state{i} = 'LOCKOUT: EXCESSIVE TISSUE PRE-COMPRESSION (> 1.60 N)';
         wave_launch_ok(i)  = false;
     else
-        interlock_state(i) = "INTERLOCK CLEARED: 1.50 N NOMINAL PRELOAD VALIDATED";
+        interlock_state{i} = 'INTERLOCK CLEARED: 1.50 N NOMINAL PRELOAD VALIDATED';
         wave_launch_ok(i)  = true;
     end
 end
@@ -79,21 +79,18 @@ fprintf('Trial\tTrue(N)\tMean Meas(N)\tStd(N)\tInterlock Decision\n');
 fprintf('------------------------------------------------------------------------\n');
 for i = 1:numTrials
     fprintf('%d\t%.2f\t%.3f\t\t%.4f\t%s\n', ...
-        i, true_preloads(i), mean_measured(i), std_measured(i), interlock_state(i));
+        i, true_preloads(i), mean_measured(i), std_measured(i), interlock_state{i});
 end
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 %% Plot 1: True vs Measured Preload Bar Chart
 figure('Name', 'THISULINK - Load Cell Validation', 'Color', 'w');
 b = bar([true_preloads, mean_measured]);
-b(1).FaceColor = [0.0 0.45 0.74];
-b(2).FaceColor = [0.85 0.33 0.10];
+set(b(1), 'FaceColor', [0.0 0.45 0.74]);
+set(b(2), 'FaceColor', [0.85 0.33 0.10]);
 xlabel('Clinical Test Encounter');
 ylabel('Contact Preload Force (N)');
 title('THISULINK Micro Load-Cell True vs Measured Preload Force');

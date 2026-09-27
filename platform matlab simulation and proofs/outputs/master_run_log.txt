@@ -1,0 +1,703 @@
+
+================================================================================
+       THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION SUITE          
+       (simulation study - modelled parameters and synthetic data only)        
+================================================================================
+Start Time : 27-Sep-2026 13:04:58
+Directory  : <suite folder>
+Outputs    : <suite folder>\outputs
+================================================================================
+
+>>> Running Experiment 01/12: 01_Baseline_Mechanical_Response ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 01: BASELINE MECHANICAL RESPONSE                 
+========================================================================
+Tissue Model              : Class 1 (Healthy Compliant Control)
+Moving Mass (m)           : 0.0450 kg
+Tissue Stiffness (k)      : 800.00 N/m
+Damping Coefficient (c)   : 2.50 N*s/m
+Diagnostic Frequency (f)  : 50.00 Hz
+Dynamic Force (F0)        : 0.100 N (100 mN)
+Static Preload (F_pre)    : 1.50 N
+Static Indentation        : 1.875 mm
+------------------------------------------------------------------------
+Steady-State Displ. Amp.  : 0.0269 mm (t >= 0.5 s)
+Steady-State Accel. Amp.  : 2.6492 m/s^2 (0.270 g)
+Natural Frequency fn      : 21.22 Hz
+Peak Dynamic Displacement : 0.0688 mm (6.8769e-05 m) [incl. start-up transient]
+RMS Dynamic Displacement  : 0.0199 mm (1.9922e-05 m)
+Peak Surface Velocity     : 13.2137 mm/s (1.3214e-02 m/s)
+RMS Surface Velocity      : 6.0129 mm/s (6.0129e-03 m/s)
+Peak Dynamic Acceleration : 3.1996 m/s^2 (0.326 g) [incl. start-up transient]
+RMS Dynamic Acceleration  : 1.8742 m/s^2 (0.191 g)
+Theoretical Shear Speed   : 3.72 m/s
+========================================================================
+
+    [PASS] Finished in 8.38 seconds.
+
+>>> Running Experiment 02/12: 02_Stiffness_Comparison ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 02: PLANTAR TISSUE STIFFNESS COMPARISON         
+========================================================================
+
+Class 1: Healthy Control (Compliant):
+  Stiffness (k)           : 800.0 N/m
+  Shear Modulus (mu)      : 14.5 kPa
+  Young Modulus (E)       : 43.5 kPa
+  Shear Wave Speed (cs)   : 3.72 m/s
+  Natural Frequency (fn)  : 21.22 Hz
+  Steady-State Disp. Amp. : 0.0269 mm
+  Peak Displacement       : 0.0688 mm (incl. start-up transient)
+  Peak Acceleration       : 3.1996 m/s^2
+  RMS Acceleration        : 1.8742 m/s^2
+
+Class 2: Early Glycation (Moderate Stiffening):
+  Stiffness (k)           : 1500.0 N/m
+  Shear Modulus (mu)      : 32.0 kPa
+  Young Modulus (E)       : 96.0 kPa
+  Shear Wave Speed (cs)   : 5.52 m/s
+  Natural Frequency (fn)  : 29.06 Hz
+  Steady-State Disp. Amp. : 0.0322 mm
+  Peak Displacement       : 0.0556 mm (incl. start-up transient)
+  Peak Acceleration       : 3.9714 m/s^2
+  RMS Acceleration        : 2.2452 m/s^2
+
+Class 3: Diabetic Neuropathy (High Ulcer Risk):
+  Stiffness (k)           : 2600.0 N/m
+  Shear Modulus (mu)      : 68.0 kPa
+  Young Modulus (E)       : 204.0 kPa
+  Shear Wave Speed (cs)   : 8.05 m/s
+  Natural Frequency (fn)  : 38.26 Hz
+  Steady-State Disp. Amp. : 0.0431 mm
+  Peak Displacement       : 0.0537 mm (incl. start-up transient)
+  Peak Acceleration       : 4.7233 m/s^2
+  RMS Acceleration        : 2.9948 m/s^2
+========================================================================
+
+warning: legend: 'best' not yet implemented for location specifier, using 'northeast' instead
+warning: legend: 'best' not yet implemented for location specifier, using 'northeast' instead
+    [PASS] Finished in 12.05 seconds.
+
+>>> Running Experiment 03/12: 03_Frequency_Sweep ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 03: CHIRP FREQUENCY SWEEP (10 - 300 Hz)          
+========================================================================
+Chirp Bandwidth           : 10 Hz - 300 Hz
+Dynamic Force Amplitude   : 0.100 N (100 mN)
+Actuator Moving Mass      : 0.0450 kg (45 g)
+------------------------------------------------------------------------
+Class 1: Healthy Control:
+  Stiffness k             : 800.0 N/m
+  Theoretical fn          : 21.22 Hz
+  Simulated Peak Acc Freq : 22.00 Hz
+  Simulated Peak Acc Amp  : 5.4481 m/s^2 (0.556 g)
+Class 2: Early Glycation:
+  Stiffness k             : 1500.0 N/m
+  Theoretical fn          : 29.06 Hz
+  Simulated Peak Acc Freq : 30.00 Hz
+  Simulated Peak Acc Amp  : 5.8129 m/s^2 (0.593 g)
+Class 3: Diabetic Neuropathy:
+  Stiffness k             : 2600.0 N/m
+  Theoretical fn          : 38.26 Hz
+  Simulated Peak Acc Freq : 40.00 Hz
+  Simulated Peak Acc Amp  : 5.4610 m/s^2 (0.557 g)
+========================================================================
+
+    [PASS] Finished in 7.07 seconds.
+
+>>> Running Experiment 04/12: 04_FFT_Analysis ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 04: FFT HARMONIC SPECTRUM & PURITY               
+========================================================================
+Nominal Excitation Frequency  : 50.00 Hz
+Sampling Frequency (fs)       : 4000 Hz
+Extracted Fundamental Freq    : 50.00 Hz
+Fundamental Peak Amplitude    : 2.6495 m/s^2
+2nd Harmonic Amplitude        : 0.0927 m/s^2 (100.00 Hz)
+3rd Harmonic Amplitude        : 0.0318 m/s^2 (150.00 Hz)
+Total Harmonic Distortion THD : 3.70% (-28.64 dB)
+Harmonic Purity Check         : PASS (THD < 5% design threshold)
+NOTE: the 2nd/3rd harmonic levels (3.5% / 1.2%) are ASSUMED model inputs;
+      this experiment verifies the FFT/THD pipeline, not the real actuator.
+========================================================================
+
+    [PASS] Finished in 4.12 seconds.
+
+>>> Running Experiment 05/12: 05_Sensor_Simulation ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 05: DUAL ADXL355 ACCELEROMETER SIMULATION        
+========================================================================
+Sensor Model                  : Analog Devices ADXL355 (20-bit)
+Full-Scale Range              : +/- 2.048 g (+/- 20.08 m/s^2)
+Digital ADC Resolution        : 20 bits
+Quantization Resolution       : 3.83e-05 m/s^2 (3.91 ug/LSB)
+Noise Density                 : 2.45e-04 m/s^2/sqrt(Hz) (25 ug/sqrt(Hz))
+Noise Bandwidth (LPF corner)  : 1000.0 Hz
+Theoretical Noise Floor (RMS) : 0.0077 m/s^2
+------------------------------------------------------------------------
+PROXIMAL SENSOR (x1 = 105 mm):
+  True Signal RMS             : 0.1331 m/s^2
+  Measurement Error RMS       : 0.0091 m/s^2
+  Broadband SNR (0-1000 Hz)   : 23.28 dB
+  Narrow-band SNR at 50 Hz   : 59.87 dB (coherent, 3200 samples)
+DISTAL SENSOR (x2 = 145 mm, dx = 40 mm):
+  True Signal RMS             : 0.0739 m/s^2
+  Measurement Error RMS       : 0.0092 m/s^2
+  Broadband SNR (0-1000 Hz)   : 18.12 dB
+  Narrow-band SNR at 50 Hz   : 54.83 dB (coherent, 3200 samples)
+INTER-SENSOR WAVE PROPERTIES:
+  Plantar Shear Speed cs      : 3.81 m/s
+  Theoretical Wave ToF Delay  : 10.50 ms
+========================================================================
+
+warning: legend: 'best' not yet implemented for location specifier, using 'northeast' instead
+    [PASS] Finished in 8.67 seconds.
+
+>>> Running Experiment 06/12: 06_Noise_SNR_Analysis ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 06: SENSOR NOISE FLOOR & SNR ROBUSTNESS         
+========================================================================
+Plantar Pickup Location       : Distal Sensor 2 (x2 = 145 mm)
+Diagnostic Frequency          : 50.0 Hz
+Distal True Signal RMS        : 0.0739 m/s^2
+ADXL355 Nominal Noise Density : 2.45e-04 m/s^2/sqrt(Hz) (25 ug/sqrt(Hz))
+------------------------------------------------------------------------
+Noise Density	Noise RMS	Error RMS	SNR(dB)	Detected f	Phase Error
+(m/s^2/rtHz)	(m/s^2)		(m/s^2)			(Hz)		(deg)
+------------------------------------------------------------------------
+0.000100	0.0032		0.0060		21.87	50.00		0.034
+0.000245	0.0077		0.0091		18.17	50.00		0.107
+0.001000	0.0316		0.0321		7.23	50.00		0.059
+0.005000	0.1581		0.1567		-6.53	50.00		2.576
+0.020000	0.6325		0.6311		-18.63	50.00		3.480
+0.080000	2.5298		2.5102		-30.63	208.00		48.462
+SNR = broadband (0-1000 Hz) signal RMS / error RMS; the phase estimate
+uses coherent averaging at 50 Hz and is far less noise-sensitive.
+========================================================================
+
+warning: axis: omitting non-positive data in log plot
+warning: called from
+    hggroup at line 59 column 3
+    xline at line 319 column 7
+    experiment_noise_snr at line 120 column 1
+    run at line 78 column 7
+    run_experiment_isolated>execute_script at line 44 column 1
+    run_experiment_isolated at line 27 column 5
+    master_run_all at line 93 column 9
+
+warning: axis: omitting non-positive data in log plot
+warning: called from
+    hggroup at line 59 column 3
+    yline at line 319 column 7
+    experiment_noise_snr at line 121 column 1
+    run at line 78 column 7
+    run_experiment_isolated>execute_script at line 44 column 1
+    run_experiment_isolated at line 27 column 5
+    master_run_all at line 93 column 9
+
+warning: axis: omitting non-positive data in log plot
+warning: called from
+    hggroup at line 59 column 3
+    xline at line 319 column 7
+    experiment_noise_snr at line 132 column 1
+    run at line 78 column 7
+    run_experiment_isolated>execute_script at line 44 column 1
+    run_experiment_isolated at line 27 column 5
+    master_run_all at line 93 column 9
+
+warning: axis: omitting non-positive data in log plot
+warning: called from
+    hggroup at line 59 column 3
+    xline at line 319 column 7
+    experiment_noise_snr at line 132 column 1
+    run at line 78 column 7
+    run_experiment_isolated>execute_script at line 44 column 1
+    run_experiment_isolated at line 27 column 5
+    master_run_all at line 93 column 9
+
+warning: axis: omitting non-positive data in log plot
+warning: called from
+    hggroup at line 59 column 3
+    yline at line 319 column 7
+    experiment_noise_snr at line 133 column 1
+    run at line 78 column 7
+    run_experiment_isolated>execute_script at line 44 column 1
+    run_experiment_isolated at line 27 column 5
+    master_run_all at line 93 column 9
+
+warning: axis: omitting non-positive data in log plot
+warning: called from
+    hggroup at line 59 column 3
+    yline at line 319 column 7
+    experiment_noise_snr at line 133 column 1
+    run at line 78 column 7
+    run_experiment_isolated>execute_script at line 44 column 1
+    run_experiment_isolated at line 27 column 5
+    master_run_all at line 93 column 9
+
+warning: axis: omitting non-positive data in log plot
+warning: called from
+    hggroup at line 59 column 3
+    yline at line 319 column 7
+    experiment_noise_snr at line 144 column 1
+    run at line 78 column 7
+    run_experiment_isolated>execute_script at line 44 column 1
+    run_experiment_isolated at line 27 column 5
+    master_run_all at line 93 column 9
+
+    [PASS] Finished in 6.42 seconds.
+
+>>> Running Experiment 07/12: 07_Contact_Force_Sensitivity ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 07: CONTACT FORCE SENSITIVITY & INTERLOCK PROOF   
+========================================================================
+Baseline Tissue Stiffness (k0): 800.0 N/m
+Calibrated Target Preload     : 1.50 N
+Contact Stiffening Alpha      : 180.0 (N/m)/N
+Allowable Interlock Window    : 1.40 N - 1.60 N (1.50 N +/- 0.10 N)
+------------------------------------------------------------------------
+Preload(N)	Effective k	fn(Hz)	cs(m/s)	E(kPa)	Acc(m/s^2)	Stiffness Error
+------------------------------------------------------------------------
+0.80 N		674.0 N/m	19.48	3.53	36.6	2.5647		-15.8% [REJECT: UNDER-CONTACT]
+1.10 N		728.0 N/m	20.24	3.65	39.6	2.6004		-9.0% [REJECT: UNDER-CONTACT]
+1.40 N		782.0 N/m	20.98	3.77	42.5	2.6371		-2.2% [VALID INTERLOCK GATE]
+1.50 N		800.0 N/m	21.22	3.81	43.5	2.6495		0.0% [VALID INTERLOCK GATE]
+1.60 N		818.0 N/m	21.46	3.85	44.5	2.6621		2.2% [VALID INTERLOCK GATE]
+2.00 N		890.0 N/m	22.38	4.00	48.4	2.7136		11.2% [REJECT: OVER-COMPRESSION]
+2.50 N		980.0 N/m	23.49	4.18	53.3	2.7807		22.5% [REJECT: OVER-COMPRESSION]
+3.00 N		1070.0 N/m	24.54	4.36	58.2	2.8512		33.8% [REJECT: OVER-COMPRESSION]
+------------------------------------------------------------------------
+Uncontrolled range 0.8-3.0 N  : stiffness error -15.8% to +33.8%
+Inside interlock window        : |stiffness error| <= 2.25%, |d fn| <= 0.24 Hz, |d cs| <= 0.039 m/s
+NOTE: linear pre-stress model with an ASSUMED alpha = 180 (N/m)/N; loss of
+      coupling at very low preload is not modelled.
+========================================================================
+
+    [PASS] Finished in 7.24 seconds.
+
+>>> Running Experiment 08/12: 08_Load_Cell_Validation ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 08: MICRO LOAD-CELL CONTACT INTERLOCK VALIDATION 
+========================================================================
+Target Calibrated Preload     : 1.50 N
+Acceptable Interlock Window   : 1.40 N - 1.60 N (1.50 N +/- 0.10 N)
+Load Cell Noise Floor (RMS)   : 0.0150 N (HX711 24-bit ADC)
+------------------------------------------------------------------------
+Trial	True(N)	Mean Meas(N)	Std(N)	Interlock Decision
+------------------------------------------------------------------------
+1	0.85	0.850		0.0159	LOCKOUT: INSUFFICIENT PRELOAD (< 1.40 N)
+2	1.32	1.321		0.0163	LOCKOUT: INSUFFICIENT PRELOAD (< 1.40 N)
+3	1.51	1.511		0.0145	INTERLOCK CLEARED: 1.50 N NOMINAL PRELOAD VALIDATED
+4	1.58	1.581		0.0151	INTERLOCK CLEARED: 1.50 N NOMINAL PRELOAD VALIDATED
+5	1.85	1.851		0.0142	LOCKOUT: EXCESSIVE TISSUE PRE-COMPRESSION (> 1.60 N)
+6	3.20	3.201		0.0156	LOCKOUT: EXCESSIVE TISSUE PRE-COMPRESSION (> 1.60 N)
+========================================================================
+
+    [PASS] Finished in 5.54 seconds.
+
+>>> Running Experiment 09/12: 09_VCA_Electrical_Test ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 09: VCA ELECTROMECHANICAL & POWER CHARACTERISTICS 
+========================================================================
+Actuator Type                 : Linear Voice Coil Actuator (VCA)
+Coil DC Resistance (R)        : 8.20 Ohm
+Coil Inductance (L)           : 1.200 mH (0.001200 H)
+Force Constant (Kf)           : 2.40 N/A
+Back-EMF Constant (Ke)        : 2.40 V/(m/s)
+Drive Voltage Amplitude (V0)  : 1.20 V peak
+------------------------------------------------------------------------
+NOMINAL EVALUATION (f = 50.0 Hz):
+  Electrical Impedance |Z|    : 8.209 Ohm (Phase = 2.63 deg)
+  Peak Coil Current           : 0.1462 A (146.2 mA)
+  RMS Coil Current            : 0.1034 A (103.4 mA)
+  Peak Output Dynamic Force   : 0.3508 N (350.8 mN)
+  RMS Dynamic Force           : 0.2481 N (248.1 mN)
+  Average Electrical Power    : 0.0876 W (87.6 mW)
+  Target Dynamic Force F0     : 0.100 N (100 mN safe skin contact)
+  Power Check                 : PASS (coil dissipation < 100 mW)
+  Drive voltage for F0 = 100 mN: 0.342 V peak (7.1 mW)
+  VCA energy per 3 s scan     : 0.263 J (VCA only; MCU, BLE, sensors excluded)
+NOTE: static-coil model (R + jwL) - back-EMF and the mechanical load are
+      neglected, so current/force are upper bounds at the given voltage.
+========================================================================
+
+    [PASS] Finished in 6.66 seconds.
+
+>>> Running Experiment 10/12: 10_Shear_Wave_Dispersion_and_Modulus ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 10: PLANTAR SWE DISPERSION & MODULUS RECONSTRUCTION
+  (SIMULATION - synthetic signals, same forward model used for inversion)
+========================================================================
+Gauge Separation dx           : 40.0 mm (x1 = 105 mm, x2 = 145 mm)
+Sensor                        : ADXL355, ODR 4000 Hz, noise BW 1000 Hz
+
+PART A - single frequency (50 Hz), E_app = 3*rho*c^2:
+Class                  c_true    c_est      ToF     E=3mu     E_app E_app err
+                        (m/s)    (m/s)     (ms)     (kPa)     (kPa)       (%)
+Healthy Control         3.808    3.806    10.51      43.5      45.6     +4.92
+Early Glycation         5.588    5.587     7.16      96.0      98.3     +2.43
+Diabetic Neuropathy     8.098    8.095     4.94     204.0     206.4     +1.19
+  (c_true is the viscoelastic phase velocity at 50 Hz; E_app is biased high
+   because viscosity raises the phase velocity above sqrt(mu/rho).)
+
+PART B - stepped sine 20-300 Hz (usable = distal SNR >= 20 dB):
+  Healthy Control      usable  20-100 Hz | dphi > pi from 50 Hz    | max |c err| unwrapped  2.65%, wrapped   2530%
+  Early Glycation      usable  20-140 Hz | dphi > pi from 80 Hz    | max |c err| unwrapped  1.02%, wrapped   1293%
+  Diabetic Neuropathy  usable  20-200 Hz | dphi > pi from 110 Hz   | max |c err| unwrapped  0.98%, wrapped   1024%
+
+PART C - Kelvin-Voigt fit over the usable band:
+Class                  mu_true    mu_fit  eta_true   eta_fit    E_true     E_fit    E err
+                         (kPa)     (kPa)    (Pa.s)    (Pa.s)     (kPa)     (kPa)      (%)
+Healthy Control          14.50     14.36     12.00     12.98      43.5      43.1    -0.95
+Early Glycation          32.00     31.87     18.50     19.32      96.0      95.6    -0.39
+Diabetic Neuropathy      68.00     67.99     28.00     28.32     204.0     204.0    -0.01
+LIMITATIONS: 1-D narrow-band propagation model; attenuation limits the usable
+band well below 300 Hz at x2 = 145 mm; no coupling, geometry or layer effects.
+========================================================================
+
+    [PASS] Finished in 17.24 seconds.
+
+>>> Running Experiment 11/12: 11_Velcro_and_Flexure_Tremor_Suppression ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 11: VELCRO STRAP & FLEXURE STABILIZATION PROOF    
+========================================================================
+Foot Mass Model               : 1.20 kg
+Unconstrained Joint Stiffness : 500.0 N/m (Damping = 10.0 N*s/m)
+Medical Velcro Strap Restraint: 12000.0 N/m (Damping = 35.0 N*s/m)
+Planar Spring Flexure Lateral : 7500.0 N/m
+Total Clamped Platform Rigidity: 20000.0 N/m (40.0-fold stiffness increase)
+------------------------------------------------------------------------
+Tremor force amplitude      : 0.390 N (scaled for a 1.50 mm free-foot peak)
+UNCONSTRAINED PATIENT FOOTFALL:
+  Peak Tremor Displacement    : 1.4997 mm (1499.7 um)
+  RMS Tremor Displacement     : 0.8303 mm
+  Phase-error proxy           : +/- 7.26 deg
+THISULINK CONSTRAINED PLATFORM (VELCRO + FLEXURES):
+  Peak Tremor Displacement    : 0.0195 mm (19.5 um) [0.050 mm limit: PASS]
+  RMS Tremor Displacement     : 0.0099 mm (9.9 um)
+  Phase-error proxy           : +/- 0.09 deg [1.0 deg limit: PASS]
+  Tremor Motion Attenuation   : 98.70% (37.72 dB rejection)
+  Tremor-band PSD rejection   : 39.0 dB (mean over 2-5 Hz)
+NOTE: lumped 1-DOF model; strap/flexure stiffness values are design
+      assumptions, not measured. Unconstrained fn = 3.25 Hz lies inside the
+      tremor band, so the free-foot amplitude is resonance-amplified.
+========================================================================
+
+    [PASS] Finished in 8.10 seconds.
+
+>>> Running Experiment 12/12: 12_Comprehensive_Triage_Scoring ...
+
+========================================================================
+  THISULINK PLANTAR BIOMECHANICAL SWE PLATFORM - SIMULATION PARAMETERS  
+  Dual-Modality Frontline Diabetic Triage Engineering Verification      
+========================================================================
+VCA Moving Mass (m)       : 0.0450 kg (45.0 g)
+Excitation Frequency      : 50.0 Hz (Bandwidth: 10 - 300 Hz)
+Dynamic Force Amplitude   : 0.100 N (100 mN safe skin contact)
+Calibrated Static Preload : 1.50 N (Allowable Interlock: 1.40 - 1.60 N)
+Dual ADXL355 Pickup Grid  : Proximal = 105 mm, Distal = 145 mm (dx = 40 mm)
+------------------------------------------------------------------------
+CLASS 1: HEALTHY COMPLIANT CONTROL
+  k = 800.0 N/m | fn = 21.22 Hz | cs = 3.72 m/s | E = 43.5 kPa
+CLASS 2: EARLY GLYCATION / MILD NEUROPATHY
+  k = 1500.0 N/m | fn = 29.06 Hz | cs = 5.52 m/s | E = 96.0 kPa
+CLASS 3: DIABETIC NEUROPATHY / HIGH ULCER RISK
+  k = 2600.0 N/m | fn = 38.26 Hz | cs = 8.05 m/s | E = 204.0 kPa
+ADXL355 ODR / Bandwidth   : 4000 Hz / 1000 Hz (sweep 10 - 300 Hz)
+Phase-wrap limit (40 mm)  : dphi = pi at 46 / 69 / 101 Hz (Class 1/2/3, elastic cs)
+========================================================================
+
+
+========================================================================
+  THISULINK EXPERIMENT 12: DUAL-MODALITY TRIAGE - SIMULATION RESULTS
+  *** Synthetic cohort + simulated sensors. NOT clinical accuracy. ***
+========================================================================
+Synthetic cohort              : N = 120 (40 healthy, 35 early, 30 neuropathy, 15 Charcot)
+Simulated E measurement       : 50 Hz dual-ADXL355 phase difference, preload 1.40-1.60 N
+  E_meas vs E_true            : mean +3.25%, range -0.52% to +10.97% (viscous bias + noise)
+Simulated Delta T noise (SD)  : 0.14 degC
+Thresholds                    : E 65 / 120 kPa, Delta T 1.0 / 2.2 degC
+------------------------------------------------------------------------
+Confusion matrix (rows = true group, cols = predicted grade 0..3):
+  true 0 :   40    0    0    0   (recall 100.00%)
+  true 1 :    0   35    0    0   (recall 100.00%)
+  true 2 :    0    1   29    0   (recall  96.67%)
+  true 3 :    0    0    0   15   (recall 100.00%)
+------------------------------------------------------------------------
+SIMULATION METRICS (synthetic data):
+  4-class agreement (accuracy): 99.17% (119 / 120)
+  Charcot-flag sensitivity    : 100.00%
+  Charcot-flag specificity    : 100.00%
+  Any-risk (grade>=1) sens.   : 100.00%
+  Any-risk (grade>=1) spec.   : 100.00%
+These numbers depend entirely on the assumed group distributions and are
+not evidence of diagnostic performance in patients.
+========================================================================
+
+    [PASS] Finished in 8.90 seconds.
+
+
+================================================================================
+                           MASTER SIMULATION SUMMARY                            
+================================================================================
+Exp  Module                                       Result  Time (s)
+--------------------------------------------------------------------------------
+01   01_Baseline_Mechanical_Response              PASS        8.38
+02   02_Stiffness_Comparison                      PASS       12.05
+03   03_Frequency_Sweep                           PASS        7.07
+04   04_FFT_Analysis                              PASS        4.12
+05   05_Sensor_Simulation                         PASS        8.67
+06   06_Noise_SNR_Analysis                        PASS        6.42
+07   07_Contact_Force_Sensitivity                 PASS        7.24
+08   08_Load_Cell_Validation                      PASS        5.54
+09   09_VCA_Electrical_Test                       PASS        6.66
+10   10_Shear_Wave_Dispersion_and_Modulus         PASS       17.24
+11   11_Velcro_and_Flexure_Tremor_Suppression     PASS        8.10
+12   12_Comprehensive_Triage_Scoring              PASS        8.90
+--------------------------------------------------------------------------------
+Passed: 12 / 12    Total time: 105.39 s
+Figures: <suite folder>\outputs
+================================================================================
+

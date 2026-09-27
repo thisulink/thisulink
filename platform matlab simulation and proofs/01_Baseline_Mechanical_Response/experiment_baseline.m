@@ -3,12 +3,12 @@
 % Subsystem: Voice Coil Actuator (VCA) + Plantar Heel Pad Contact
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 
@@ -38,12 +38,16 @@ force = F0 * sin(2 * pi * f_exc * t_sim);
 acceleration = (force - c_model * velocity - k_model * displacement) / m_model;
 
 %% Metrics Extraction
-peak_displacement = max(abs(displacement));
+peak_displacement = max(abs(displacement));          % includes start-up transient
+ss = t_sim >= 0.5;                                     % steady state (transient decayed)
+ss_displacement_amp = max(abs(displacement(ss)));
+ss_acceleration_amp = max(abs(acceleration(ss)));
 rms_displacement = rms(displacement);
 peak_velocity = max(abs(velocity));
 rms_velocity = rms(velocity);
 peak_acceleration = max(abs(acceleration));
 rms_acceleration = rms(acceleration);
+fn_model = (1 / (2 * pi)) * sqrt(k_model / m_model);
 
 %% Static Preload Indentation (Hayes Elastic Layer Model)
 % Delta_z_static = F_preload / k_model
@@ -62,20 +66,20 @@ fprintf('Dynamic Force (F0)        : %.3f N (100 mN)\n', F0);
 fprintf('Static Preload (F_pre)    : %.2f N\n', F_preload_target);
 fprintf('Static Indentation        : %.3f mm\n', delta_z_static * 1000);
 fprintf('------------------------------------------------------------------------\n');
-fprintf('Peak Dynamic Displacement : %.4f mm (%.4e m)\n', peak_displacement * 1000, peak_displacement);
+fprintf('Steady-State Displ. Amp.  : %.4f mm (t >= 0.5 s)\n', ss_displacement_amp * 1000);
+fprintf('Steady-State Accel. Amp.  : %.4f m/s^2 (%.3f g)\n', ss_acceleration_amp, ss_acceleration_amp / 9.80665);
+fprintf('Natural Frequency fn      : %.2f Hz\n', fn_model);
+fprintf('Peak Dynamic Displacement : %.4f mm (%.4e m) [incl. start-up transient]\n', peak_displacement * 1000, peak_displacement);
 fprintf('RMS Dynamic Displacement  : %.4f mm (%.4e m)\n', rms_displacement * 1000, rms_displacement);
 fprintf('Peak Surface Velocity     : %.4f mm/s (%.4e m/s)\n', peak_velocity * 1000, peak_velocity);
 fprintf('RMS Surface Velocity      : %.4f mm/s (%.4e m/s)\n', rms_velocity * 1000, rms_velocity);
-fprintf('Peak Dynamic Acceleration : %.4f m/s^2 (%.3f g)\n', peak_acceleration, peak_acceleration / 9.80665);
+fprintf('Peak Dynamic Acceleration : %.4f m/s^2 (%.3f g) [incl. start-up transient]\n', peak_acceleration, peak_acceleration / 9.80665);
 fprintf('RMS Dynamic Acceleration  : %.4f m/s^2 (%.3f g)\n', rms_acceleration, rms_acceleration / 9.80665);
 fprintf('Theoretical Shear Speed   : %.2f m/s\n', cs_model);
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 %% Plotting
 % Figure 1: Dynamic Force

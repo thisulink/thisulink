@@ -17,14 +17,24 @@ Where:
 
 ---
 
-## 3. Results Summary
-- **Extracted Fundamental**: $50.0\text{ Hz}$ with amplitude $\approx 2.76\text{ m/s}^2$.
-- **2nd Harmonic ($100\text{ Hz}$)**: $< 0.096\text{ m/s}^2$ ($3.5\%$).
-- **3rd Harmonic ($150\text{ Hz}$)**: $< 0.033\text{ m/s}^2$ ($1.2\%$).
-- **Total Harmonic Distortion**: $\text{THD} \approx 3.7\% \ll 5\%$ clinical threshold, confirming excellent sinusoidal fidelity and phase stability.
+## 3. Results (simulation)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
+
+- Fundamental: 50.00 Hz, amplitude 2.65 m/s²
+- 2nd harmonic (100 Hz): 0.093 m/s²; 3rd harmonic (150 Hz): 0.032 m/s²
+- THD = 3.70 % (-28.6 dB) → passes the 5 % design threshold
+
+## 4. Limitations
+- The 3.5 % / 1.2 % harmonic levels are **assumed inputs**. The experiment verifies the Hann-window FFT/THD pipeline (`fft_analysis.m`), it does not predict the distortion of a real actuator or tissue.
+
+## 5. Generated Figures
+- `steady_state_acceleration.png`, `acceleration_fft_spectrum.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/steady_state_acceleration.png`: 600 ms steady-state temporal trace.
-- `results/acceleration_fft_spectrum.png`: Amplitude spectrum ($0 - 250\text{ Hz}$) with fundamental and harmonic markers.
+## How to Run
+```matlab
+cd('04_FFT_Analysis')
+experiment_fft            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/04_FFT_Analysis/` (git-ignored).

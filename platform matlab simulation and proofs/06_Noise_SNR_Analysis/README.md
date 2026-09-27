@@ -15,16 +15,32 @@ $$\Delta \phi_{\text{error}} = |\phi_{\text{measured}} - \phi_{\text{ground\_tru
 
 ---
 
-## 3. Results Summary
-- At the **ADXL355 nominal noise floor ($25\ \mu\text{g}/\sqrt{\text{Hz}}$)**:
-  - **SNR**: $\mathbf{47.8\text{ dB}}$ at the distal pickup ($x_2 = 145\text{ mm}$), exceeding the $20\text{ dB}$ clinical threshold by nearly $28\text{ dB}$.
-  - **Phase Error**: $\mathbf{0.27^\circ}$ — well beneath the maximum permissible phase jitter threshold ($1.0^\circ$).
-  - **Frequency Tracking**: Detected frequency is locked perfectly to $50.00\text{ Hz}$.
-- Even when sensor noise is degraded tenfold ($250\ \mu\text{g}/\sqrt{\text{Hz}}$), SNR remains $> 28\text{ dB}$, confirming excellent diagnostic margin.
+## 3. Results (simulation, distal pickup, Class 1, 50 Hz)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
+
+| Noise density (m/s²/√Hz) | ≈ µg/√Hz | Broadband SNR | Detected f | Phase error |
+|---|---|---|---|---|
+| 0.000100 | 10 | 21.9 dB | 50 Hz | 0.03° |
+| **0.000245 (ADXL355)** | **25** | **18.2 dB** | **50 Hz** | **0.11°** |
+| 0.001000 | 102 | 7.2 dB | 50 Hz | 0.06° |
+| 0.005000 | 510 | -6.5 dB | 50 Hz | 2.6° |
+| 0.020000 | 2039 | -18.6 dB | 50 Hz | 3.5° |
+| 0.080000 | 8158 | -30.6 dB | 208 Hz (lost) | 48° |
+
+- At the ADXL355 noise floor the 50 Hz phase error is ~0.1°, well below a 1° budget; phase tracking only degrades at ~20x the ADXL355 noise density.
+- Broadband SNR is below 20 dB even for the nominal sensor, because the signal at 145 mm is small (see Experiment 05). The phase estimate is not limited by this because it averages coherently. Single noise realisation per level, so the phase-error column is not monotonic.
+
+## 4. Limitations
+- One noise realisation per level; no ambient vibration, cable or callus modelling.
+
+## 5. Generated Figures
+- `snr_vs_noise.png`, `phase_error_vs_noise.png`, `detected_frequency_vs_noise.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/snr_vs_noise.png`: SNR vs noise density curve highlighting ADXL355 operating point.
-- `results/phase_error_vs_noise.png`: Phase angle error vs accelerometer noise floor.
-- `results/detected_frequency_vs_noise.png`: Fundamental frequency detection stability across noise levels.
+## How to Run
+```matlab
+cd('06_Noise_SNR_Analysis')
+experiment_noise_snr            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/06_Noise_SNR_Analysis/` (git-ignored).

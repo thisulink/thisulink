@@ -3,12 +3,12 @@
 % Direct Mathematical Proof for THISULINK CAD Mechanical Upgrades
 % SIH 2026 Grand Finale - THISULINK Diagnostic Verification
 
-clear;
-clc;
-close all;
+% (No clear/clc/close all here: the master runner executes every experiment
+%  in its own workspace, and clearing would break callers.)
 
 %% Path Setup
 expDir = fileparts(mfilename('fullpath'));
+if isempty(expDir), expDir = pwd; end
 projectRoot = fileparts(expDir);
 addpath(fullfile(projectRoot, 'common'));
 
@@ -35,22 +35,37 @@ f_tremor1 = 3.2; % Hz
 f_tremor2 = 4.5; % Hz
 f_tremor3 = 2.1; % Hz
 
-% Tremor force amplitude chosen to produce 1.50 mm unconstrained motion
-F_tremor_amp = 1.80; % N
+% ASSUMPTION: the unconstrained foot shows a 1.50 mm peak tremor excursion.
+% The (unobservable) tremor force amplitude is scaled so that the free-foot
+% model reproduces exactly that; the model is linear, so the clamped result
+% scales by the same factor.
+target_free_peak = 1.50e-3; % m
+F_tremor_amp = 1.00;        % N (provisional, rescaled below)
 
 t_tremor = (0:1/fs:2.5-1/fs)'; % 2.5 second recording
-F_tremor = F_tremor_amp * (0.65 * sin(2*pi*f_tremor1*t_tremor) + ...
-                           0.25 * sin(2*pi*f_tremor2*t_tremor + 0.4) + ...
-                           0.10 * sin(2*pi*f_tremor3*t_tremor - 0.7));
+% Analytic force function (avoids interp1 inside the ODE right-hand side)
+F_tremor_fun = @(tt) F_tremor_amp * (0.65 * sin(2*pi*f_tremor1*tt) + ...
+                                     0.25 * sin(2*pi*f_tremor2*tt + 0.4) + ...
+                                     0.10 * sin(2*pi*f_tremor3*tt - 0.7));
+F_tremor = F_tremor_fun(t_tremor);
 
 %% Simulate Unconstrained Foot Motion (No Velcro, No Flexure)
 x0 = [0; 0];
-ode_free = @(tt, x) [x(2); (interp1(t_tremor, F_tremor, tt) - c_foot_free*x(2) - k_foot_free*x(1)) / m_foot];
+ode_free = @(tt, x) [x(2); (F_tremor_fun(tt) - c_foot_free*x(2) - k_foot_free*x(1)) / m_foot];
+[~, X_free] = ode45(ode_free, t_tremor, x0);
+disp_free = X_free(:, 1);
+F_scale = target_free_peak / max(abs(disp_free));
+F_tremor_amp = F_tremor_amp * F_scale;
+F_tremor = F_tremor * F_scale;
+F_tremor_fun = @(tt) F_tremor_amp * (0.65 * sin(2*pi*f_tremor1*tt) + ...
+                                     0.25 * sin(2*pi*f_tremor2*tt + 0.4) + ...
+                                     0.10 * sin(2*pi*f_tremor3*tt - 0.7));
+ode_free = @(tt, x) [x(2); (F_tremor_fun(tt) - c_foot_free*x(2) - k_foot_free*x(1)) / m_foot];
 [~, X_free] = ode45(ode_free, t_tremor, x0);
 disp_free = X_free(:, 1);
 
 %% Simulate THISULINK Constrained Foot Motion (With Velcro Strap + Flexure)
-ode_clamped = @(tt, x) [x(2); (interp1(t_tremor, F_tremor, tt) - c_constrained*x(2) - k_constrained*x(1)) / m_foot];
+ode_clamped = @(tt, x) [x(2); (F_tremor_fun(tt) - c_constrained*x(2) - k_constrained*x(1)) / m_foot];
 [~, X_clamped] = ode45(ode_clamped, t_tremor, x0);
 disp_clamped = X_clamped(:, 1);
 
@@ -65,6 +80,10 @@ attenuation_pct   = (1 - peak_disp_clamped / peak_disp_free) * 100;
 attenuation_db    = 20 * log10(peak_disp_free / peak_disp_clamped);
 
 %% Phase Wobble Impact on 50 Hz Plantar Shear Wave (dx = 40 mm, cs = 3.72 m/s)
+% SIMPLIFIED PROXY: treats the whole foot displacement as a change of the
+% propagation path length seen by one pickup, i.e. phase error = k_w * x(t).
+% In reality both pickups move with the foot and much of this cancels; the
+% numbers below are a pessimistic, order-of-magnitude indicator only.
 % Wavenumber k_w = 2*pi*50 / 3.72 ~ 84.45 rad/m
 k_w = (2 * pi * f_exc) / cs_A;
 phase_jitter_free_deg    = (disp_free * k_w) * (180 / pi);
@@ -72,6 +91,19 @@ phase_jitter_clamped_deg = (disp_clamped * k_w) * (180 / pi);
 
 peak_jitter_free    = max(abs(phase_jitter_free_deg));
 peak_jitter_clamped = max(abs(phase_jitter_clamped_deg));
+
+%% Tremor PSD (Hann-windowed periodogram, computed explicitly so no toolbox is needed)
+N_psd = length(t_tremor);
+w_psd = 0.5 - 0.5 * cos(2 * pi * (0:N_psd-1)' / (N_psd - 1));
+f_psd = (0:floor(N_psd/2))' * fs / N_psd;
+P_free    = abs(fft((disp_free    - mean(disp_free))    .* w_psd)).^2 / (fs * sum(w_psd.^2));
+P_clamped = abs(fft((disp_clamped - mean(disp_clamped)) .* w_psd)).^2 / (fs * sum(w_psd.^2));
+P_free    = P_free(1:length(f_psd));    P_free(2:end-1)    = 2 * P_free(2:end-1);
+P_clamped = P_clamped(1:length(f_psd)); P_clamped(2:end-1) = 2 * P_clamped(2:end-1);
+band = (f_psd >= 2) & (f_psd <= 5);
+psd_rejection_db = 10 * log10(sum(P_free(band)) / sum(P_clamped(band)));
+pf_text = {'FAIL', 'PASS'};
+pass_fail = @(cond) pf_text{1 + double(logical(cond))};
 
 %% Console Output
 fprintf('\n========================================================================\n');
@@ -84,25 +116,29 @@ fprintf('Planar Spring Flexure Lateral : %.1f N/m\n', k_flex);
 fprintf('Total Clamped Platform Rigidity: %.1f N/m (%.1f-fold stiffness increase)\n', ...
     k_constrained, k_constrained/k_foot_free);
 fprintf('------------------------------------------------------------------------\n');
+fprintf('Tremor force amplitude      : %.3f N (scaled for a %.2f mm free-foot peak)\n', ...
+    F_tremor_amp, target_free_peak * 1000);
 fprintf('UNCONSTRAINED PATIENT FOOTFALL:\n');
 fprintf('  Peak Tremor Displacement    : %.4f mm (%.1f um)\n', peak_disp_free*1000, peak_disp_free*1e6);
 fprintf('  RMS Tremor Displacement     : %.4f mm\n', rms_disp_free*1000);
-fprintf('  Induced Shear Wave Jitter   : +/- %.2f deg (CORRUPTS ELASTOGRAPHY)\n', peak_jitter_free);
+fprintf('  Phase-error proxy           : +/- %.2f deg\n', peak_jitter_free);
 fprintf('THISULINK CONSTRAINED PLATFORM (VELCRO + FLEXURES):\n');
-fprintf('  Peak Tremor Displacement    : %.4f mm (%.1f um) [< 0.050 mm limit]\n', ...
-    peak_disp_clamped*1000, peak_disp_clamped*1e6);
+fprintf('  Peak Tremor Displacement    : %.4f mm (%.1f um) [0.050 mm limit: %s]\n', ...
+    peak_disp_clamped*1000, peak_disp_clamped*1e6, pass_fail(peak_disp_clamped < 50e-6));
 fprintf('  RMS Tremor Displacement     : %.4f mm (%.1f um)\n', ...
     rms_disp_clamped*1000, rms_disp_clamped*1e6);
-fprintf('  Clamped Phase Jitter        : +/- %.2f deg (< 1.0 deg clinical limit)\n', peak_jitter_clamped);
+fprintf('  Phase-error proxy           : +/- %.2f deg [1.0 deg limit: %s]\n', peak_jitter_clamped, ...
+    pass_fail(peak_jitter_clamped < 1.0));
 fprintf('  Tremor Motion Attenuation   : %.2f%% (%.2f dB rejection)\n', attenuation_pct, attenuation_db);
-fprintf('  Platform Safety Status      : VALIDATED (Full Tremor & Motion Immunity)\n');
+fprintf('  Tremor-band PSD rejection   : %.1f dB (mean over %.0f-%.0f Hz)\n', psd_rejection_db, 2, 5);
+fprintf('NOTE: lumped 1-DOF model; strap/flexure stiffness values are design\n');
+fprintf('      assumptions, not measured. Unconstrained fn = %.2f Hz lies inside the\n', ...
+    sqrt(k_foot_free/m_foot)/(2*pi));
+fprintf('      tremor band, so the free-foot amplitude is resonance-amplified.\n');
 fprintf('========================================================================\n\n');
 
 %% Results Directory
-resultsFolder = fullfile(expDir, 'results');
-if ~exist(resultsFolder, 'dir')
-    mkdir(resultsFolder);
-end
+resultsFolder = results_folder(expDir);   % -> outputs/<experiment>/
 
 %% Plot 1: Unconstrained vs THISULINK Clamped Tremor Displacement
 figure('Name', 'THISULINK - Foot Tremor Suppression', 'Color', 'w');
@@ -116,11 +152,11 @@ grid on;
 subplot(2, 1, 2);
 plot(t_tremor, disp_clamped * 1000, 'Color', [0.47 0.67 0.19], 'LineWidth', 1.5);
 hold on;
-yline(0.05, '--r', '+0.050 mm Motion Tolerance Limit', 'LineWidth', 1.2);
-yline(-0.05, '--r', '-0.050 mm Motion Tolerance Limit', 'LineWidth', 1.2);
+yline(0.05, '--r', '±0.050 mm motion tolerance limit', 'LineWidth', 1.2, 'LabelVerticalAlignment', 'bottom');
+yline(-0.05, '--r', 'LineWidth', 1.2);
 xlabel('Time (s)');
 ylabel('Displacement (mm)');
-title(sprintf('THISULINK Velcro Straps + Flexure: Clamped Motion (Peak = %.3f mm / %.1f \\mum — %.1f%% Attenuation)', ...
+title(sprintf('THISULINK Velcro Straps + Flexure: Clamped Motion (Peak = %.3f mm / %.1f \\mum - %.1f%% Attenuation)', ...
     peak_disp_clamped*1000, peak_disp_clamped*1e6, attenuation_pct));
 grid on;
 saveas(gcf, fullfile(resultsFolder, 'tremor_displacement_suppression.png'));
@@ -130,19 +166,17 @@ figure('Name', 'THISULINK - Phase Jitter Suppression', 'Color', 'w');
 plot(t_tremor, phase_jitter_free_deg, 'Color', [0.85 0.33 0.10], 'LineWidth', 1.2);
 hold on;
 plot(t_tremor, phase_jitter_clamped_deg, 'Color', [0.0 0.45 0.74], 'LineWidth', 1.8);
-yline(1.0, '--k', 'Max Allowable Phase Jitter (1.0^\circ)', 'LineWidth', 1.2);
+yline(1.0, '--k', 'Max Allowable Phase Jitter (1.0^\circ)', 'LineWidth', 1.2, 'LabelVerticalAlignment', 'bottom');
 yline(-1.0, '--k', 'LineWidth', 1.2);
 xlabel('Time (s)');
 ylabel('Phase Angle Jitter (degrees)');
-title('THISULINK Plantar Shear Wave Phase Jitter: Free vs Velcro-Clamped Foot');
-legend('Unconstrained (Severe Motion Artifact)', 'THISULINK Velcro-Clamped (< 0.8^\circ)', 'Location', 'northeast');
+title('Phase-error proxy (k_w x foot displacement): Free vs Clamped Foot');
+legend('Unconstrained foot', 'Velcro + flexure clamped', 'Location', 'northeast');
 grid on;
 saveas(gcf, fullfile(resultsFolder, 'phase_jitter_suppression.png'));
 
 %% Plot 3: Frequency Domain Tremor Power Spectral Density
 figure('Name', 'THISULINK - Tremor PSD', 'Color', 'w');
-[f_psd, P_free] = periodogram(disp_free, hann(length(disp_free)), [], fs);
-[~, P_clamped]  = periodogram(disp_clamped, hann(length(disp_clamped)), [], fs);
 semilogy(f_psd, P_free, 'Color', [0.85 0.33 0.10], 'LineWidth', 1.5);
 hold on;
 semilogy(f_psd, P_clamped, 'Color', [0.47 0.67 0.19], 'LineWidth', 1.8);
@@ -150,6 +184,6 @@ xlim([0.5, 15]);
 xlabel('Tremor Frequency (Hz)');
 ylabel('Power Spectral Density (m^2/Hz)');
 title('Motion Artifact Rejection Spectrum (2 - 5 Hz Tremor Band)');
-legend('Unconstrained Footfall', 'THISULINK Velcro + Flexures (> 30 dB Rejection)', 'Location', 'northeast');
+legend('Unconstrained Footfall', sprintf('Velcro + Flexures (%.1f dB in 2-5 Hz)', psd_rejection_db), 'Location', 'northeast');
 grid on;
 saveas(gcf, fullfile(resultsFolder, 'tremor_psd_rejection.png'));

@@ -23,15 +23,32 @@ $$\delta_{z,\text{static}} = \frac{F_{\text{preload}}}{k} = \frac{1.50\text{ N}}
 
 ---
 
-## 3. Results Summary
-- **Dynamic Displacement Amplitude**: $\approx 0.028\text{ mm}$ ($28\ \mu\text{m}$) — ultra-safe, non-invasive, imperceptible to the patient.
-- **Dynamic Surface Acceleration**: $\approx 2.76\text{ m/s}^2$ ($0.28\text{ g}$) — comfortably within the ADXL355 full-scale range ($\pm 2.048\text{ g}$).
-- **Resonant Frequency**: $f_n = \frac{1}{2\pi}\sqrt{\frac{k}{m}} \approx 21.22\text{ Hz}$.
+## 3. Results (simulation)
+Numbers below are the console output of the script (GNU Octave 11.3 run of `master_run_all`). Synthetic noise comes from `common/det_randn.m`, so MATLAB prints the same values; ODE-based values can differ in the last digit between MATLAB and Octave.
+
+| Quantity | Value |
+|---|---|
+| Static indentation at 1.50 N | 1.875 mm |
+| Natural frequency $f_n$ | 21.22 Hz |
+| Steady-state displacement amplitude (50 Hz) | 0.0269 mm (27 µm) |
+| Steady-state acceleration amplitude | 2.65 m/s² (0.27 g), within the ADXL355 ±2.048 g range |
+| Peak displacement incl. start-up transient | 0.0688 mm |
+| Peak acceleration incl. start-up transient | 3.20 m/s² (0.33 g) |
+
+The simulation starts from rest, so the first ~0.3 s contain a transient at $f_n$; the steady-state values are the relevant ones for a continuous 50 Hz drive.
+
+## 4. Limitations
+- Lumped 1-DOF mass-spring-damper; $k$, $c$ are assumed values, not measured on tissue.
+- "Safe / imperceptible" is not established by this model; it only gives the motion amplitude.
+
+## 5. Generated Figures
+- `baseline_force.png`, `baseline_displacement.png`, `baseline_velocity.png`, `baseline_acceleration.png`
 
 ---
 
-## 4. Generated Artifacts
-- `results/baseline_force.png`: Harmonic $100\text{ mN}$ drive profile.
-- `results/baseline_displacement.png`: Plantar surface dynamic displacement waveform.
-- `results/baseline_velocity.png`: Plantar surface velocity profile.
-- `results/baseline_acceleration.png`: Plantar surface acceleration profile.
+## How to Run
+```matlab
+cd('01_Baseline_Mechanical_Response')
+experiment_baseline            % or run master_run_all from the suite root
+```
+Figures are written to `outputs/01_Baseline_Mechanical_Response/` (git-ignored).
