@@ -128,6 +128,9 @@ Full topology and operations: **[backend/INFRASTRUCTURE.md](backend/INFRASTRUCTU
 | 10 | [backend/README.md](backend/README.md) | Schema, RBAC, event engine |
 | 11 | [backend/INFRASTRUCTURE.md](backend/INFRASTRUCTURE.md) | Tunnel, mesh, edge operations |
 | 12 | [prototype-outputs/README.md](prototype-outputs/README.md) | Screen-by-screen prototype outputs & verification gallery |
+| 13 | [firmware/README.md](firmware/README.md) | Embedded MCU firmware architecture (ESP32-S3 + DSP pipeline) |
+| 14 | [platform matlab simulation and proofs/README.md](platform%20matlab%20simulation%20and%20proofs/README.md) | Plantar SWE simulation suite & mathematical proofs (12 experiments) |
+| 15 | [Clinical_Datasets_and_Parameter_Conversion/README.md](Clinical_Datasets_and_Parameter_Conversion/README.md) | Clinical data sourcing, Kelvin-Voigt physics & parameter conversion |
 
 ### Specification ↔ source
 
