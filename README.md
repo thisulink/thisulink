@@ -131,6 +131,7 @@ Full topology and operations: **[backend/INFRASTRUCTURE.md](backend/INFRASTRUCTU
 | 13 | [firmware/README.md](firmware/README.md) | Embedded MCU firmware architecture (ESP32-S3 + DSP pipeline) |
 | 14 | [platform matlab simulation and proofs/README.md](platform%20matlab%20simulation%20and%20proofs/README.md) | Plantar SWE simulation suite & mathematical proofs (12 experiments) |
 | 15 | [Clinical_Datasets_and_Parameter_Conversion/README.md](Clinical_Datasets_and_Parameter_Conversion/README.md) | Clinical data sourcing, Kelvin-Voigt physics & parameter conversion |
+| 16 | [hardware/cad/README.md](hardware/cad/README.md) | Prototype 3D CAD models, cross-sections & mechanical engineering specs |
 
 ### Specification ↔ source
 

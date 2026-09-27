@@ -52,6 +52,8 @@ the adapter so that the specular return falls outside the collection aperture.
 This is what makes the capture reproducible by a health worker rather than a
 skill acquired over months.
 
+> Complete mechanical cross-sectional CAD schematic and specifications: **[hardware/cad/README.md](../hardware/cad/README.md#2-smartphone-20d-retinal-imaging-adapter-isometric-3d-cross-section)**.
+
 ---
 
 ## 3. Operational protocol

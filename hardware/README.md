@@ -211,6 +211,8 @@ VCA excitation couples into the examination surface and returns to the pickups
 as a structural path parallel to the tissue path, corrupting the phase
 difference the entire instrument depends on.
 
+> Complete mechanical engineering CAD models, cross-sectional schematics, and OpenSCAD parametric files: **[cad/README.md](cad/README.md)**.
+
 ---
 
 ## 8. Interface summary
