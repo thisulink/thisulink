@@ -1,711 +1,399 @@
-# THISULINK — Backend Infrastructure
+# THISULINK™ Backend — Schema, RBAC & Event Engine
 
-> **Domain**: `thisulink.xyz` · **Host**: Linux laptop (always-on) · **Stack**: Cloudflare + Tailscale + PocketBase + Node.js/Express
-
-This document covers the complete self-hosted backend that powers the THISULINK multimodal diabetic screening platform — from DNS and tunnel security to the database, authentication, and triage API.
-
----
-
-## Architecture overview
-
-```
-Internet (Patient / ASHA / Mentor device)
-        │
-        │  HTTPS (443)
-        ▼
-┌───────────────────────┐
-│    Cloudflare         │  DNS • CDN • DDoS protection • SSL termination
-│    thisulink.xyz      │  Cloudflare Tunnel (cloudflared) — no open ports
-└────────────┬──────────┘
-             │  Encrypted Cloudflare Tunnel
-             ▼
-┌────────────────────────────────────────────┐
-│  Linux Laptop  (always-on, home network)   │
-│                                            │
-│  ┌──────────────┐   ┌────────────────────┐ │
-│  │  cloudflared │   │  Tailscale         │ │
-│  │  (tunnel     │   │  (admin / SSH VPN) │ │
-│  │   daemon)    │   │  100.x.x.x mesh    │ │
-│  └──────┬───────┘   └────────────────────┘ │
-│         │ localhost:8090                    │
-│  ┌──────▼───────┐                          │
-│  │  PocketBase  │  Auth • DB • Files       │
-│  │  :8090       │  Realtime • Hooks        │
-│  └──────┬───────┘                          │
-│         │ localhost:3000                   │
-│  ┌──────▼───────┐                          │
-│  │  Node.js /   │  Retinal grading API     │
-│  │  Express     │  Triage engine           │
-│  │  :3000       │  ONNX inference          │
-│  └──────────────┘                          │
-└────────────────────────────────────────────┘
-```
-
----
-
-## Contents
-
-1. [Cloudflare setup](#1-cloudflare-setup)
-2. [Tailscale VPN](#2-tailscale-vpn)
-3. [PocketBase](#3-pocketbase)
-4. [Node.js / Express API](#4-nodejs--express-api)
-5. [Process management (PM2)](#5-process-management-pm2)
-6. [Environment variables](#6-environment-variables)
-7. [Deployment checklist](#7-deployment-checklist)
-8. [Backup and recovery](#8-backup-and-recovery)
-
----
-
-## 1. Cloudflare setup
-
-### Why Cloudflare Tunnel (not open ports)
-The Linux laptop has a dynamic home IP and sits behind a NAT router. Cloudflare Tunnel (`cloudflared`) creates an outbound-only encrypted connection from the laptop to Cloudflare's edge — **no port forwarding, no static IP, no exposed ports on the home router**.
-
-### DNS records (thisulink.xyz)
-
-| Type | Name | Value | Proxied |
-|---|---|---|---|
-| CNAME | `@` (thisulink.xyz) | `<tunnel-id>.cfargotunnel.com` | ✅ Yes |
-| CNAME | `www` | `thisulink.xyz` | ✅ Yes |
-| CNAME | `pb` (pb.thisulink.xyz) | `<tunnel-id>.cfargotunnel.com` | ✅ Yes |
-| CNAME | `api` (api.thisulink.xyz) | `<tunnel-id>.cfargotunnel.com` | ✅ Yes |
-
-### Install cloudflared on the Linux laptop
-
-```bash
-# Download and install
-curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-  -o /usr/local/bin/cloudflared
-chmod +x /usr/local/bin/cloudflared
-
-# Authenticate (opens browser — log in with thisulink Cloudflare account)
-cloudflared tunnel login
-
-# Create the tunnel
-cloudflared tunnel create thisulink-prod
-# Note the tunnel ID printed here — use it in DNS records above
-```
-
-### Tunnel config file: `/etc/cloudflared/config.yml`
-
-```yaml
-tunnel: thisulink-prod
-credentials-file: /root/.cloudflared/<tunnel-id>.json
-
-ingress:
-  # PocketBase — main app + Flutter SDK calls
-  - hostname: thisulink.xyz
-    service: http://localhost:8090
-
-  - hostname: pb.thisulink.xyz
-    service: http://localhost:8090
-
-  # Node.js / Express — retinal grading + triage API
-  - hostname: api.thisulink.xyz
-    service: http://localhost:3000
-
-  # Catch-all
-  - service: http_status:404
-```
-
-### Run cloudflared as a systemd service
-
-```bash
-cloudflared service install
-systemctl enable cloudflared
-systemctl start cloudflared
-systemctl status cloudflared
-```
-
-### Cloudflare security settings (dashboard)
-
-| Setting | Value |
+| | |
 |---|---|
-| SSL/TLS mode | Full (strict) |
-| Always use HTTPS | On |
-| HSTS | Enabled, max-age 1 year |
-| Bot fight mode | On |
-| Rate limiting rule | 100 req/min per IP on `/api/` |
-| WAF — OWASP ruleset | Managed rules enabled |
+| **Document** | BE-SPEC-001 |
+| **Platform** | PocketBase 0.22.21 (embedded SQLite, REST, SSE, JSVM hooks) |
+| **Live** | **https://pb.thisulink.xyz** |
+| **Infrastructure** | [INFRASTRUCTURE.md](INFRASTRUCTURE.md) |
+| **Status** | Live in production — see §7 |
 
 ---
 
-## 2. Tailscale VPN
+## 1. Role
 
-Tailscale provides a private WireGuard mesh between your laptop, phones, and any other admin device. Use it for:
-- SSH into the laptop from anywhere without exposing port 22
-- Accessing PocketBase admin UI (`100.x.x.x:8090/_`) from your phone/laptop without exposing it publicly
-- Zero-trust access: only Tailscale-authenticated devices can reach the admin panel
+One backend serves every client: authentication, role-based authorisation,
+clinical record storage, file storage, realtime event delivery, and the
+authoritative triage engine.
 
-### Install on the Linux laptop
-
-```bash
-curl -fsSL https://tailscale.com/install.sh | sh
-tailscale up --ssh
-```
-
-### Install on your admin devices (phone / Windows laptop)
-Download Tailscale from the official site or Play Store. Log in with the same account. All devices appear as `100.x.x.x` addresses in a private mesh.
-
-### Key Tailscale rules
-
-- **ACL**: Only allow the laptop's Tailscale IP to access PocketBase port 8090 from outside.
-- **SSH**: `tailscale ssh <linux-laptop-hostname>` replaces password SSH from any Tailscale device.
-- **PocketBase admin**: Browse to `http://100.x.x.x:8090/_` from any Tailscale device for admin access (never expose `/_` through Cloudflare).
-
-### Nginx on localhost (optional, if both PocketBase and Express need routing)
-
-```nginx
-# /etc/nginx/sites-available/thisulink
-server {
-    listen 80;
-    server_name localhost;
-
-    location / {
-        proxy_pass http://127.0.0.1:8090;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-    }
-}
-```
+The triage engine runs **here**, not in the clients. Clients compute a
+provisional tier so a field device works offline, but the server's computation
+is the one that counts and the one that persists.
 
 ---
 
-## 3. PocketBase
+## 2. Collection architecture
 
-PocketBase is the primary backend — handles auth, database, file storage, realtime subscriptions, and server-side JavaScript hooks.
-
-### Download and install
-
-```bash
-mkdir -p /opt/thisulink/pocketbase && cd /opt/thisulink/pocketbase
-
-# Download latest PocketBase for Linux amd64
-wget https://github.com/pocketbase/pocketbase/releases/latest/download/pocketbase_linux_amd64.zip
-unzip pocketbase_linux_amd64.zip
-chmod +x pocketbase
-
-# First run — creates pb_data/ directory
-./pocketbase serve --http="127.0.0.1:8090"
+```
+                    ┌─────────────┐
+                    │    users    │  auth · role · RBAC anchor
+                    └──────┬──────┘
+                           │ assigned_health_worker
+                           ▼
+                    ┌─────────────┐
+                    │  patients   │  ABHA · demographics · active tier
+                    └──────┬──────┘
+                           │ patient_id
+        ┌──────────────────┼──────────────────┬─────────────┐
+        ▼                  ▼                  ▼             ▼
+┌───────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐
+│ plantar_swe_  │  │  retinal_    │  │   vitals_    │  │ teleconsult
+│   records     │  │  records     │  │   records    │  │ _sessions │
+└───────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────────┘
+        │                 │                 │
+        └────────┬────────┴─────────────────┘
+                 ▼  triggers triage recomputation
+        ┌─────────────────┐        ┌───────────────┐
+        │ triage_results  │───────►│ relay_alerts  │
+        │ audit trail     │        │ escalation    │
+        └─────────────────┘        └───────────────┘
 ```
 
-Open `http://100.x.x.x:8090/_` (via Tailscale) to set up the admin account on first launch.
+### Canonical names
 
-### Collections (create in admin UI)
+Earlier drafts used shorter names. **The live schema is authoritative**; both
+frontends and the hook engine bind to it.
 
-#### `asha_workers`
+| Draft name | Live collection |
+|---|---|
+| `vitals` | `vitals_records` |
+| `plantar_scans` | `plantar_swe_records` |
+| `retinal_scans` | `retinal_records` |
+| `triage_records` | `triage_results` |
+| `consultations` | `teleconsult_sessions` |
+
+Field names differ correspondingly — `sbp` → `systolic_bp`, `triage_color` →
+`overall_tier`. These collections are live, populated and bound; renaming them
+is a breaking migration with a data backfill, not a cosmetic edit.
+
+---
+
+## 3. Schema
+
+### `users` — auth collection
+
 | Field | Type | Notes |
 |---|---|---|
-| name | text | required |
-| email | email | unique, used for auth |
-| phone | text | |
-| district | text | |
-| assigned_patients | relation (patients) | multiple |
+| `email`, `password` | system | Email auth; 8-character minimum |
+| `role` | select | `health_worker` \| `doctor` \| `patient` \| `admin` |
+| `name` | text | |
+| `phone` | text | |
+| `assigned_phc` | text | Primary health centre |
+| `district` | text | |
+| `specialisation`, `hospital` | text | Clinician fields |
 
-#### `mentors`
+One auth collection with a role field, not one collection per role. Four roles
+extend without a schema change, and a login is one request.
+
+### `patients`
+
 | Field | Type | Notes |
 |---|---|---|
-| name | text | required |
-| email | email | unique, used for auth |
-| specialisation | text | e.g. Ophthalmology, Diabetology |
-| hospital | text | |
+| `abha_id` | text | 14 digits, **unique index** |
+| `name`, `age`, `gender`, `village` | | Demographics |
+| `assigned_health_worker` | relation → `users` | Caseload anchor |
+| `active_triage_status` | select | `green` \| `yellow` \| `orange` \| `red` |
+| `current_cycle_day` | number | 1–6 |
+| `diabetes_type` | text | |
 
-#### `patients`
+**Indexes:** unique on `abha_id`; on `assigned_health_worker`; on
+`active_triage_status` (the physician queue's primary filter).
+
+`current_cycle_day` drives the entire reminder engine — which vital is due,
+when the fundus photograph is taken, what a missed day means.
+
+### `plantar_swe_records`
+
 | Field | Type | Notes |
 |---|---|---|
-| name | text | required |
-| age | number | |
-| gender | select | Male / Female / Other |
-| diabetes_type | select | Type 1 / Type 2 / GDM |
-| asha_worker | relation (asha_workers) | single |
-| current_cycle_day | number | 1–6 |
-| triage_colour | select | Green / Yellow / Orange / Red |
+| `patient_id` | relation, cascade delete | |
+| `operator_id` | relation → `users` | |
+| `contact_force_n` | number | Stored as measured, including out-of-window |
+| `shear_wave_speed_mps` | number | cₛ |
+| `youngs_modulus_kpa` | number | E |
+| `tissue_class` | select | `A_healthy` \| `B_early_glycation` \| `C_diabetic_neuropathy` |
+| `thermal_asymmetry_delta_t` | number | °C |
+| `resonance_peak_hz` | number | fₙ |
+| `raw_packet_hex` | text | 73-byte frame as transmitted — audit trail |
+| `cycle_day`, `measured_at` | | |
 
-#### `cycle_sessions`
+Contact force is stored even when invalid, so a reviewer can see *why* a scan
+was rejected rather than finding it absent.
+
+### `retinal_records`
+
 | Field | Type | Notes |
 |---|---|---|
-| patient | relation (patients) | required |
-| cycle_day | number | 1–6 |
-| date | date | |
-| swe_modulus_kpa | number | Young's modulus E |
-| swe_cs_ms | number | Shear-wave speed c_s (m/s) |
-| tissue_class | select | A / B / C |
-| delta_t_celsius | number | Thermometry ΔT |
-| glucose_mgdl | number | Blood glucose |
-| retinal_image | file | JPEG/PNG, stored in PocketBase Files |
-| dr_grade | number | 0–4, nullable |
-| referable_prob | number | 0.0–1.0, nullable |
-| triage_colour | select | Green / Yellow / Orange / Red |
+| `patient_id`, `operator_id` | relation | |
+| `image_file` | file | JPEG/PNG, 10 MB max |
+| `eye_side` | select | `left` \| `right` |
+| `predicted_dr_grade` | number | ICDR 0–4 |
+| `referable_dr_prob` | number | 0.0–1.0 |
+| `doctor_confirmed_grade` | number | **Nullable — absent means unreviewed** |
+| `doctor_notes` | text | |
 
-#### `triage_results`
-| Field | Type | Notes |
-|---|---|---|
-| patient | relation (patients) | |
-| session | relation (cycle_sessions) | |
-| triage_colour | select | Green / Yellow / Orange / Red |
-| computed_at | date | |
-| notes | text | optional clinician note |
+Nullability of `doctor_confirmed_grade` is load-bearing: it is how the sign-off
+queue distinguishes unreviewed from reviewed-as-normal.
 
-#### `relay_alerts`
-| Field | Type | Notes |
-|---|---|---|
-| asha_worker | relation (asha_workers) | |
-| patient | relation (patients) | |
-| message | text | |
-| acknowledged | bool | default false |
+### `vitals_records`
 
-### PocketBase JavaScript hook: triage engine
+| Field | Type |
+|---|---|
+| `patient_id`, `operator_id` | relation |
+| `systolic_bp`, `diastolic_bp` | number, mmHg |
+| `blood_glucose` | number, mg/dL |
+| `reading_type` | select — `fasting` \| `post_prandial` \| `random` |
+| `cycle_day`, `measured_at` | |
 
-Create at `pb_hooks/triage.pb.js`:
+### `triage_results` — audit trail
 
-```javascript
-// Runs after every cycle_sessions record is created or updated
-onRecordAfterCreateRequest((e) => {
-  computeTriage(e.record);
-}, "cycle_sessions");
+| Field | Type |
+|---|---|
+| `patient_id` | relation |
+| `overall_tier` | select — `green` \| `yellow` \| `orange` \| `red` |
+| `reason_summary` | text — human-readable clinical justification |
+| `computed_at` | date |
 
-onRecordAfterUpdateRequest((e) => {
-  computeTriage(e.record);
-}, "cycle_sessions");
+A row per computation, **including no-change computations**. The history must
+show that a patient was assessed and found stable, not fall silent.
 
-function computeTriage(session) {
-  const tissueClass   = session.get("tissue_class");       // "A", "B", "C"
-  const deltaT        = session.get("delta_t_celsius") || 0;
-  const drGrade       = session.get("dr_grade") ?? -1;
-  const referableProb = session.get("referable_prob") || 0;
-  const glucose       = session.get("glucose_mgdl") || 0;
+### `relay_alerts`
 
-  let colour = "Green";
+| Field | Type |
+|---|---|
+| `patient_id`, `health_worker_id` | relation |
+| `status` | select — `pending` \| `acknowledged` \| `resolved` |
+| `message` | text — tier and reason |
 
-  if (
-    tissueClass === "C" ||
-    (referableProb >= 0.50 && drGrade >= 3) ||
-    glucose > 400
-  ) {
-    colour = "Red";
-  } else if (
-    (tissueClass === "B" && deltaT >= 2.2) ||
-    referableProb >= 0.50 ||
-    glucose > 300
-  ) {
-    colour = "Orange";
-  } else if (
-    tissueClass === "B" ||
-    deltaT >= 2.2 ||
-    drGrade >= 2 ||
-    glucose > 180
-  ) {
-    colour = "Yellow";
-  }
+### `teleconsult_sessions`
 
-  // Write triage result
-  const collection = $app.dao().findCollectionByNameOrId("triage_results");
-  const record = new Record(collection);
-  record.set("patient", session.get("patient"));
-  record.set("session", session.id);
-  record.set("triage_colour", colour);
-  record.set("computed_at", new Date().toISOString());
-  $app.dao().saveRecord(record);
-
-  // Update patient's current triage colour
-  const patient = $app.dao().findRecordById("patients", session.get("patient"));
-  patient.set("triage_colour", colour);
-  $app.dao().saveRecord(patient);
-
-  // If Orange or Red → create relay alert for the ASHA worker
-  if (colour === "Orange" || colour === "Red") {
-    const patientName = patient.get("name");
-    const cycleDay    = session.get("cycle_day");
-    const ashaId      = patient.get("asha_worker");
-
-    const alertCol = $app.dao().findCollectionByNameOrId("relay_alerts");
-    const alert = new Record(alertCol);
-    alert.set("asha_worker", ashaId);
-    alert.set("patient", patient.id);
-    alert.set("message",
-      `⚠️ ${patientName} — Triage ${colour} on Day ${cycleDay}. Immediate review needed.`
-    );
-    alert.set("acknowledged", false);
-    $app.dao().saveRecord(alert);
-  }
-}
-```
-
-### Run PocketBase with PM2 (see Section 5)
+| Field | Type |
+|---|---|
+| `patient_id`, `doctor_id` | relation |
+| `room_name` | text |
+| `status` | select — `scheduled` \| `in_progress` \| `completed` \| `cancelled` |
+| `notes`, `prescription` | text |
+| `started_at`, `ended_at` | date |
 
 ---
 
-## 4. Node.js / Express API
+## 4. Zero-trust RBAC
 
-The Express server handles:
-- **Retinal grading** (`POST /api/retinal/grade`) — runs ONNX INT8 inference server-side when Flutter app is online
-- **Batch triage** (`POST /api/triage/batch`) — recompute triage for multiple sessions
-- **Healthcheck** (`GET /api/health`)
-- **Webhook receiver** from PocketBase hooks (optional)
+### Rule model
 
-### Setup
+| Constant | Expression |
+|---|---|
+| `CLINICIAN` | `@request.auth.role = "doctor" \|\| @request.auth.role = "admin"` |
+| `STAFF` | `@request.auth.role = "health_worker" \|\| ... = "doctor" \|\| ... = "admin"` |
+| `PATIENT_SCOPED` | `(CLINICIAN) \|\| (@request.auth.id = assigned_health_worker.id)` |
 
-```bash
-mkdir -p /opt/thisulink/api && cd /opt/thisulink/api
-npm init -y
-npm install express cors helmet morgan dotenv onnxruntime-node multer sharp axios
-```
+| Collection | list / view | create | update |
+|---|---|---|---|
+| `users` | self, or clinician | admin only | self, or clinician |
+| `patients` | `PATIENT_SCOPED` | `STAFF` | `PATIENT_SCOPED` |
+| `plantar_swe_records` | `STAFF` | `STAFF` | `CLINICIAN` |
+| `retinal_records` | `STAFF` | `STAFF` | `CLINICIAN` |
+| `vitals_records` | `STAFF` | `STAFF` | `CLINICIAN` |
+| `triage_results` | `STAFF` | `STAFF` | `CLINICIAN` |
+| `relay_alerts` | `STAFF` | `STAFF` | `STAFF` |
+| `teleconsult_sessions` | `STAFF` | `CLINICIAN` | `CLINICIAN` |
 
-### `src/index.js`
-
-```javascript
-require('dotenv').config();
-const express    = require('express');
-const cors       = require('cors');
-const helmet     = require('helmet');
-const morgan     = require('morgan');
-
-const retinalRouter = require('./routes/retinal');
-const triageRouter  = require('./routes/triage');
-
-const app = express();
-
-app.use(helmet());
-app.use(cors({ origin: ['https://thisulink.xyz', 'http://localhost'] }));
-app.use(morgan('combined'));
-app.use(express.json({ limit: '10mb' }));
-
-app.use('/api/retinal', retinalRouter);
-app.use('/api/triage',  triageRouter);
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', ts: new Date().toISOString() });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`THISULINK API running on 127.0.0.1:${PORT}`);
-});
-```
-
-### `src/routes/retinal.js` — ONNX grading
-
-```javascript
-const express = require('express');
-const multer  = require('multer');
-const sharp   = require('sharp');
-const ort     = require('onnxruntime-node');
-const path    = require('path');
-
-const router  = express.Router();
-const upload  = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
-
-const IMAGENET_MEAN = [0.485, 0.456, 0.406];
-const IMAGENET_STD  = [0.229, 0.224, 0.225];
-const MODEL_PATH    = path.join(__dirname, '../../models/thisulink_retinal_efficientnet_b0_int8.onnx');
-
-let session;
-(async () => { session = await ort.InferenceSession.create(MODEL_PATH); })();
-
-async function preprocessImage(buffer) {
-  // Resize to 224x224, normalize to ImageNet stats
-  const { data, info } = await sharp(buffer)
-    .resize(224, 224)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const float32 = new Float32Array(3 * 224 * 224);
-  for (let i = 0; i < 224 * 224; i++) {
-    float32[i]                 = (data[i * 3]     / 255 - IMAGENET_MEAN[0]) / IMAGENET_STD[0];
-    float32[i + 224 * 224]     = (data[i * 3 + 1] / 255 - IMAGENET_MEAN[1]) / IMAGENET_STD[1];
-    float32[i + 2 * 224 * 224] = (data[i * 3 + 2] / 255 - IMAGENET_MEAN[2]) / IMAGENET_STD[2];
-  }
-  return new ort.Tensor('float32', float32, [1, 3, 224, 224]);
-}
-
-// POST /api/retinal/grade
-// Content-Type: multipart/form-data   field: image (JPEG/PNG)
-router.post('/grade', upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-
-    const inputTensor = await preprocessImage(req.file.buffer);
-    const feeds = { input: inputTensor };
-    const results = await session.run(feeds);
-
-    const gradeProbs   = Array.from(results['grade_probs'].data);
-    const referableRaw = results['referable_prob'].data[0];
-
-    const predictedGrade = gradeProbs.indexOf(Math.max(...gradeProbs));
-    const gradeNames = ['No DR', 'Mild', 'Moderate', 'Severe', 'Proliferative'];
-
-    res.json({
-      thisulink_module: 'retinal',
-      research_output: {
-        predicted_dr_grade:      predictedGrade,
-        grade_name:              gradeNames[predictedGrade],
-        grade_probabilities: {
-          '0': +gradeProbs[0].toFixed(4),
-          '1': +gradeProbs[1].toFixed(4),
-          '2': +gradeProbs[2].toFixed(4),
-          '3': +gradeProbs[3].toFixed(4),
-          '4': +gradeProbs[4].toFixed(4),
-        },
-        referable_dr_probability: +referableRaw.toFixed(4),
-        referable:               referableRaw >= 0.50,
-        triage_contribution:     referableRaw >= 0.50 && predictedGrade >= 3
-                                   ? 'RED' : referableRaw >= 0.50
-                                   ? 'ORANGE' : predictedGrade >= 2
-                                   ? 'YELLOW' : 'GREEN',
-      },
-      disclaimer: 'Research output only — not a diagnosis. Clinician review required.',
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Inference failed', detail: err.message });
-  }
-});
-
-module.exports = router;
-```
-
-### `src/routes/triage.js` — manual triage recompute
-
-```javascript
-const express = require('express');
-const router  = express.Router();
-
-function computeTriageColour({ tissueClass, deltaT, drGrade, referableProb, glucose }) {
-  if (
-    tissueClass === 'C' ||
-    (referableProb >= 0.50 && drGrade >= 3) ||
-    glucose > 400
-  ) return 'Red';
-
-  if (
-    (tissueClass === 'B' && deltaT >= 2.2) ||
-    referableProb >= 0.50 ||
-    glucose > 300
-  ) return 'Orange';
-
-  if (
-    tissueClass === 'B' ||
-    deltaT >= 2.2 ||
-    drGrade >= 2 ||
-    glucose > 180
-  ) return 'Yellow';
-
-  return 'Green';
-}
-
-// POST /api/triage/compute
-// Body: { tissueClass, deltaT, drGrade, referableProb, glucose }
-router.post('/compute', (req, res) => {
-  const { tissueClass, deltaT, drGrade, referableProb, glucose } = req.body;
-  const colour = computeTriageColour({ tissueClass, deltaT, drGrade, referableProb, glucose });
-  res.json({ triage_colour: colour, computed_at: new Date().toISOString() });
-});
-
-module.exports = router;
-```
-
-### `package.json` scripts
-
-```json
-{
-  "scripts": {
-    "start":  "node src/index.js",
-    "dev":    "nodemon src/index.js",
-    "test":   "jest"
-  }
-}
-```
+A health worker sees their own caseload. Clinicians see the network. The
+`patient` role appears in **no** allowlist and therefore reaches no clinical
+collection.
 
 ---
 
-## 5. Process management (PM2)
+### 4.1 Incident: cross-tenant PHI exposure
 
-PM2 keeps both PocketBase and the Express API alive across reboots.
+A real defect, found during production verification and fixed. It is recorded
+here because the failure mode generalises.
 
-```bash
-npm install -g pm2
+#### What happened
 
-# Start PocketBase
-pm2 start /opt/thisulink/pocketbase/pocketbase \
-  --name pocketbase \
-  -- serve --http="127.0.0.1:8090" --dir="/opt/thisulink/pocketbase/pb_data"
+PocketBase creates a default `users` auth collection on first run. The schema
+migration guarded collection creation with an "already exists" check — correct
+for every other collection, wrong for this one. The check passed, creation was
+skipped, and the collection retained only PocketBase's own `name` and `avatar`
+fields.
 
-# Start Express API
-pm2 start /opt/thisulink/api/src/index.js \
-  --name thisulink-api \
-  --env production
+**The `role` field was never created.** No account had a role.
 
-# Save and enable on boot
-pm2 save
-pm2 startup systemd
-# Run the printed command as root
+#### Why it was invisible
+
+The original access rules used a negative exclusion:
+
+```
+   @request.auth.id != "" && @request.auth.role != "patient"
 ```
 
-### Useful PM2 commands
+With `role` undefined, `role != "patient"` evaluates **true**. Every
+authenticated account passed. Account provisioning succeeded and returned
+identifiers; PocketBase silently discards unknown fields on create, so
+`"role":"doctor"` was accepted and dropped without error.
 
-```bash
-pm2 list                    # show running processes
-pm2 logs pocketbase         # PocketBase logs
-pm2 logs thisulink-api      # Express logs
-pm2 restart thisulink-api   # restart Express after code change
-pm2 monit                   # live CPU/RAM dashboard
+#### Impact
+
+Verified before the fix: the patient account could list **all 24 plantar
+records, all 24 vitals records, all 4 retinal evaluations and all 8 triage
+results** — every other patient's clinical data.
+
+The defect surfaced only because the physician queue rendered empty: the
+`patients` rule used a positive check (`role = "doctor"`), which correctly
+failed closed. One collection failing closed is what exposed seven failing
+open.
+
+#### Fix
+
+1. **Schema repaired** — `role` and the staff fields added; the migration now
+   *extends* an existing `users` collection instead of skipping it.
+2. **Rules rewritten as explicit allowlists.** An account whose role is
+   missing, or carries a value added after the rules were written, is now
+   **denied by construction**.
+
 ```
+   ✗ negative exclusion              ✓ explicit allowlist
+   role != "patient"                 role = "health_worker"
+                                  || role = "doctor"
+   unknown role → ADMITTED        || role = "admin"
+                                     unknown role → DENIED
+```
+
+#### Verified after the fix
+
+| Account | patients | plantar | vitals | retinal |
+|---|---|---|---|---|
+| `doctor` | 4 | 24 | 24 | 4 |
+| `health_worker` | 4 | 24 | 24 | 4 |
+| **`patient`** | **0** | **0** | **0** | **0** |
+
+#### Generalisation
+
+An exclusion rule fails **open** when the field it tests is absent. An
+allowlist fails **closed**. In any system holding protected health
+information, authorisation must be expressed as an allowlist — not because it
+reads better, but because the two behave oppositely under exactly the
+condition nobody tests for.
 
 ---
 
-## 6. Environment variables
+## 5. Realtime event engine
 
-### `/opt/thisulink/api/.env`
+### Triage recomputation
 
-```env
-PORT=3000
-NODE_ENV=production
-
-# PocketBase admin credentials (for server-to-server calls)
-PB_URL=http://127.0.0.1:8090
-PB_ADMIN_EMAIL=admin@thisulink.xyz
-PB_ADMIN_PASSWORD=<strong-password>
-
-# ONNX model path
-ONNX_MODEL_PATH=/opt/thisulink/api/models/thisulink_retinal_efficientnet_b0_int8.onnx
-
-# Cloudflare (for cache purge or D1 if added later)
-CF_ZONE_ID=<cloudflare-zone-id>
-CF_API_TOKEN=<cloudflare-api-token>
-
-# Tailscale (informational)
-TAILSCALE_IP=100.x.x.x
+```
+   record created in plantar_swe_records | vitals_records | retinal_records
+   ── or ── retinal_records updated (physician sign-off)
+                       │
+                       ▼
+   load the patient's LATEST record of EACH modality
+                       │
+                       ▼
+   compute tier (first match wins, most severe first)
+                       │
+        ┌──────────────┼──────────────────┐
+        ▼              ▼                  ▼
+   write audit    update patient     if ENTERING red/orange
+   row (always)   tier if changed    and no alert pending:
+                       │              raise relay_alert
+                       ▼
+                 SSE event → Specialist Workstation queue
 ```
 
-> [!CAUTION]
-> Never commit `.env` to Git. It is in `.gitignore` by default. Use `cp .env.example .env` on each new deployment.
+### Tier rules
 
-### `.env.example` (safe to commit)
+| Tier | Condition — first match wins |
+|---|---|
+| 🔴 RED | Tissue class C, **or** P(referable) ≥ 0.50 with grade ≥ 3, **or** glucose > 400 mg/dL |
+| 🟠 ORANGE | Class B with ΔT ≥ 2.2 °C, **or** P(referable) ≥ 0.50, **or** glucose > 300 |
+| 🟡 YELLOW | Class B, **or** ΔT ≥ 2.2 °C, **or** grade ≥ 2, **or** glucose > 180 |
+| 🟢 GREEN | None of the above |
 
-```env
-PORT=3000
-NODE_ENV=production
-PB_URL=http://127.0.0.1:8090
-PB_ADMIN_EMAIL=
-PB_ADMIN_PASSWORD=
-ONNX_MODEL_PATH=
-CF_ZONE_ID=
-CF_API_TOKEN=
-TAILSCALE_IP=
-```
+### Engine properties
+
+| Property | Rationale |
+|---|---|
+| Computed from the latest of **each** modality | A glucose reading hours after a foot scan must not discard that scan |
+| `doctor_confirmed_grade` supersedes prediction, **including 0** | A physician's "no retinopathy" is never reverted by null-coalescing |
+| Audit row on every computation | History shows assessment, not silence |
+| Alert only on **entering** a priority tier, and only if none pending | A patient who remains unwell must not bury their health worker |
+| Failure never rolls back the clinical record | The reading matters; a tier can be recomputed |
+
+### Manual recomputation
+
+`POST /api/thisulink/retriage` — admin authenticated. Recomputes every patient
+and reports `{recomputed, total, failures}`. Used after a rule change or to
+backfill.
 
 ---
 
-## 7. Deployment checklist
+### 5.1 Incident: silent hook failure
 
-### First-time setup on the Linux laptop
+A second real defect, also found in production verification.
 
-```bash
-# 1. Install dependencies
-sudo apt update && sudo apt install -y nginx unzip curl git nodejs npm
+**PocketBase executes every JSVM hook handler in its own isolated context.**
+Declarations at the top level of a hook file are not visible inside the handler
+body — referencing one throws `ReferenceError` at request time, not at load.
 
-# 2. Clone repo
-git clone https://github.com/thisulink/thisulink.git /opt/thisulink/repo
+The handlers were registered correctly and called on schedule, but every
+invocation threw on its first line. Because the hook catches its own errors to
+protect the clinical write, records saved normally, the API returned 200, and
+`triage_results` stayed empty. The only evidence was a line in the service
+journal.
 
-# 3. Install and start cloudflared (Section 1)
+**Fix:** the engine is a separate module, `require()`d from **inside** each
+handler body rather than closed over.
 
-# 4. Install and start Tailscale (Section 2)
-curl -fsSL https://tailscale.com/install.sh | sh && tailscale up --ssh
-
-# 5. Set up PocketBase (Section 3)
-mkdir -p /opt/thisulink/pocketbase
-# download + unzip pocketbase binary here
-
-# 6. Set up Express API (Section 4)
-cd /opt/thisulink/api && npm install
-
-# 7. Copy ONNX model
-cp /path/to/thisulink_retinal_efficientnet_b0_int8.onnx /opt/thisulink/api/models/
-
-# 8. Copy .env
-cp .env.example .env && nano .env   # fill in secrets
-
-# 9. Start with PM2 (Section 5)
-
-# 10. Verify
-curl https://api.thisulink.xyz/api/health
-curl https://thisulink.xyz/_/api/health   # PocketBase health
-```
-
-### After every code update
-
-```bash
-cd /opt/thisulink/repo && git pull origin main
-cd /opt/thisulink/api  && npm install
-pm2 restart thisulink-api
-```
+**Generalisation:** a hook that swallows its own errors to protect a write must
+be monitored on its *output*, not its status code. The check that caught this
+was noticing that `triage_results` had zero rows after seeding data that must
+produce eight.
 
 ---
 
-## 8. Backup and recovery
+## 6. API surface
 
-### PocketBase data backup (cron)
+| Operation | Endpoint |
+|---|---|
+| Health | `GET /api/health` |
+| Authenticate | `POST /api/collections/users/auth-with-password` |
+| Refresh | `POST /api/collections/users/auth-refresh` |
+| Records | `GET|POST|PATCH /api/collections/{name}/records` |
+| Files | `GET /api/files/{collection}/{id}/{filename}` |
+| Realtime | `GET /api/realtime` (SSE) |
+| Recompute triage | `POST /api/thisulink/retriage` (admin) |
+| **Administration console** | `/_/` — **mesh only; 404 at the public edge** |
 
-```bash
-# /etc/cron.d/thisulink-backup
-0 2 * * * root tar -czf /opt/backups/pb_data_$(date +\%Y\%m\%d).tar.gz \
-  /opt/thisulink/pocketbase/pb_data && \
-  find /opt/backups -name "pb_data_*.tar.gz" -mtime +7 -delete
-```
+### Query safety
 
-### Restore
-
-```bash
-pm2 stop pocketbase
-tar -xzf /opt/backups/pb_data_YYYYMMDD.tar.gz -C /
-pm2 start pocketbase
-```
-
-### Cloudflare Tunnel credential backup
-
-```bash
-cp /root/.cloudflared/<tunnel-id>.json /opt/backups/cloudflare_tunnel_creds.json
-```
+Filter strings are **not parameterised**. Every user-supplied value is escaped
+before interpolation — backslash and double-quote — in all clients. A quote
+that terminates a filter literal is an authorisation bypass, not a syntax
+error.
 
 ---
 
-## 9. Repository structure (`backend/` folder in thisulink/thisulink)
+## 7. Implementation status
 
-```
-backend/
-├── .env.example
-├── package.json
-├── src/
-│   ├── index.js               Express entry point
-│   └── routes/
-│       ├── retinal.js         ONNX retinal grading
-│       └── triage.js          Triage recompute
-├── models/
-│   └── .gitkeep              (ONNX model not committed — download separately)
-├── pb_hooks/
-│   └── triage.pb.js           PocketBase JS hook (triage engine)
-├── nginx/
-│   └── thisulink.conf         Nginx local reverse proxy config
-├── cloudflared/
-│   └── config.yml             Cloudflare Tunnel config template
-└── README.md                  ← this file
-```
+| Component | Status |
+|---|---|
+| Deployment | **Live at https://pb.thisulink.xyz** |
+| Eight collections, indexes, relations | **Live** |
+| RBAC allowlists | **Live and verified** — patient isolation confirmed |
+| Triage engine | **Live and verified end to end** |
+| Relay escalation | **Verified** — alert raised on tier entry with clinical reason |
+| Realtime SSE | Live |
+| Manual recompute endpoint | Live |
+| Seeded clinical dataset | 4 accounts · 4 patients · 24 plantar · 24 vitals · 4 retinal |
+| Administration console exposure | **404 publicly, mesh-only** |
+| **Tele-consultation token service** | **Not deployed** |
+| **Automated backups** | **Not configured** — see INFRASTRUCTURE.md |
 
----
+### Verified tier assignment
 
-## Ports at a glance
-
-| Service | Binds to | Exposed publicly via |
-|---|---|---|
-| PocketBase | `127.0.0.1:8090` | Cloudflare Tunnel → `thisulink.xyz` |
-| PocketBase admin `/_` | `127.0.0.1:8090` | **Tailscale only** — never via Cloudflare |
-| Express API | `127.0.0.1:3000` | Cloudflare Tunnel → `api.thisulink.xyz` |
-| cloudflared | outbound only | Cloudflare edge |
-| Tailscale | `100.x.x.x` | WireGuard mesh — admin SSH + DB access |
-| SSH | `22` (Tailscale only) | No public exposure |
+| Patient | Tissue | ΔT | Glucose | ICDR | Tier |
+|---|---|---|---|---|---|
+| Meena Devi | C | 2.7 °C | 262 | 4 | 🔴 RED |
+| Saravanan S | B | 2.4 °C | 216 | 2 | 🟠 ORANGE |
+| Ravi Kumar | B | 1.9 °C | 168 | 1 | 🟡 YELLOW |
+| Arjun Prakash | A | 1.2 °C | 138 | 0 | 🟢 GREEN |

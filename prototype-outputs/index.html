@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THISULINK Screen Gallery</title>
+<style>
+:root { --bg:#f4f6f8; --card:#ffffff; --text:#14202b; --muted:#5b6b78; --line:#dde3e8; --accent:#1b8b5a; }
+@media (prefers-color-scheme: dark) { :root { --bg:#11161b; --card:#1a2229; --text:#e6edf2; --muted:#9aa9b5; --line:#2a353e; --accent:#3ccf8e; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+header { padding:28px 16px 8px; max-width:1280px; margin:auto; }
+h1 { margin:0 0 4px; font-size:26px; } h1 b { color:var(--accent); }
+header p { margin:0; color:var(--muted); }
+nav { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); }
+nav div { max-width:1280px; margin:auto; padding:10px 16px; display:flex; gap:18px; flex-wrap:wrap; }
+nav a { color:var(--accent); text-decoration:none; font-weight:600; }
+section { max-width:1280px; margin:auto; padding:18px 16px 8px; }
+h2 { margin:8px 0 2px; font-size:20px; } .desc { margin:0 0 14px; color:var(--muted); }
+.grid { display:grid; gap:16px; }
+.grid.wide { grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); }
+.grid.phone { grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); }
+.card { margin:0; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; cursor:zoom-in; transition:transform .12s, box-shadow .12s; }
+.card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.12); }
+.card img { display:block; width:100%; height:auto; background:#fff; }
+.grid.wide .card img { aspect-ratio:16/10; object-fit:cover; object-position:top; }
+.grid.phone .card img { aspect-ratio:430/932; object-fit:cover; object-position:top; }
+figcaption { padding:8px 10px; font-size:13px; }
+.num { display:inline-block; min-width:28px; margin-right:6px; color:var(--accent); font-weight:700; }
+footer { max-width:1280px; margin:auto; padding:24px 16px 40px; color:var(--muted); font-size:13px; }
+#lb { position:fixed; inset:0; background:rgba(5,10,15,.88); display:none; flex-direction:column; align-items:center; justify-content:center; padding:16px; z-index:10; }
+#lb.open { display:flex; }
+#lb img { max-width:100%; max-height:calc(100vh - 90px); border-radius:8px; background:#fff; }
+#lb p { color:#fff; margin:12px 0 0; text-align:center; }
+#lb button { position:absolute; background:rgba(255,255,255,.15); color:#fff; border:0; border-radius:8px; font-size:22px; width:44px; height:44px; cursor:pointer; }
+#lb .x { right:12px; top:10px; } #lb .prev { left:12px; top:50%; } #lb .next { right:12px; top:50%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>THISU<b>LINK</b> screen gallery</h1>
+  <p>Every main screen of the Doctor Portal, Health Worker app and Patient app, with fictional demo data on a local test server. See README.md for what each screen does.</p>
+</header>
+<nav><div><a href="#doctor_portal">Doctor Portal</a><a href="#health_worker_app">Health Worker app</a><a href="#patient_app">Patient app</a><a href="README.md">README</a></div></nav>
+  <section id="doctor_portal">
+    <h2>Doctor Portal</h2>
+    <p class="desc">Web workstation for doctors: triage, retinal sign-off, tele-consults, AI diet plans.</p>
+    <div class="grid wide">
+      <figure class="card" data-src="doctor_portal/01_login.png" data-cap="Doctor Portal: Sign in">
+        <img loading="lazy" src="doctor_portal/01_login.png" alt="Sign in">
+        <figcaption><span class="num">01</span>Sign in</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/02_complete_account.png" data-cap="Doctor Portal: Complete your account (first sign-in)">
+        <img loading="lazy" src="doctor_portal/02_complete_account.png" alt="Complete your account (first sign-in)">
+        <figcaption><span class="num">02</span>Complete your account (first sign-in)</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/03_triage_queue.png" data-cap="Doctor Portal: Triage command centre, all tiers">
+        <img loading="lazy" src="doctor_portal/03_triage_queue.png" alt="Triage command centre, all tiers">
+        <figcaption><span class="num">03</span>Triage command centre, all tiers</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/04_triage_filter_red.png" data-cap="Doctor Portal: Queue filtered to Red / Emergency">
+        <img loading="lazy" src="doctor_portal/04_triage_filter_red.png" alt="Queue filtered to Red / Emergency">
+        <figcaption><span class="num">04</span>Queue filtered to Red / Emergency</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/05_retinal_review.png" data-cap="Doctor Portal: Retinal fundus review: AI grade and P(referable)">
+        <img loading="lazy" src="doctor_portal/05_retinal_review.png" alt="Retinal fundus review: AI grade and P(referable)">
+        <figcaption><span class="num">05</span>Retinal fundus review: AI grade and P(referable)</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/06_retinal_signoff.png" data-cap="Doctor Portal: Clinician sign-off: confirm grade and notes">
+        <img loading="lazy" src="doctor_portal/06_retinal_signoff.png" alt="Clinician sign-off: confirm grade and notes">
+        <figcaption><span class="num">06</span>Clinician sign-off: confirm grade and notes</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/06b_retinal_signed_off.png" data-cap="Doctor Portal: Right eye signed off">
+        <img loading="lazy" src="doctor_portal/06b_retinal_signed_off.png" alt="Right eye signed off">
+        <figcaption><span class="num">06b</span>Right eye signed off</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/07_teleconsult_studio.png" data-cap="Doctor Portal: Tele-consult studio">
+        <img loading="lazy" src="doctor_portal/07_teleconsult_studio.png" alt="Tele-consult studio">
+        <figcaption><span class="num">07</span>Tele-consult studio</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/08_diet_plan_released.png" data-cap="Doctor Portal: AI diet plan released (score 98%)">
+        <img loading="lazy" src="doctor_portal/08_diet_plan_released.png" alt="AI diet plan released (score 98%)">
+        <figcaption><span class="num">08</span>AI diet plan released (score 98%)</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/09_diet_plan_flagged.png" data-cap="Doctor Portal: AI diet plan flagged (82%) with Regenerate">
+        <img loading="lazy" src="doctor_portal/09_diet_plan_flagged.png" alt="AI diet plan flagged (82%) with Regenerate">
+        <figcaption><span class="num">09</span>AI diet plan flagged (82%) with Regenerate</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/10_notifications.png" data-cap="Doctor Portal: Notifications (flagged plan)">
+        <img loading="lazy" src="doctor_portal/10_notifications.png" alt="Notifications (flagged plan)">
+        <figcaption><span class="num">10</span>Notifications (flagged plan)</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/11_add_medication.png" data-cap="Doctor Portal: e-Prescription: add medication">
+        <img loading="lazy" src="doctor_portal/11_add_medication.png" alt="e-Prescription: add medication">
+        <figcaption><span class="num">11</span>e-Prescription: add medication</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/12_notes_and_prescription.png" data-cap="Doctor Portal: Notes, prescription, signed PDF report">
+        <img loading="lazy" src="doctor_portal/12_notes_and_prescription.png" alt="Notes, prescription, signed PDF report">
+        <figcaption><span class="num">12</span>Notes, prescription, signed PDF report</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/13_account_menu.png" data-cap="Doctor Portal: Account menu">
+        <img loading="lazy" src="doctor_portal/13_account_menu.png" alt="Account menu">
+        <figcaption><span class="num">13</span>Account menu</figcaption>
+      </figure>
+      <figure class="card" data-src="doctor_portal/15_signed_report_p1.png" data-cap="Doctor Portal: Signed consultation report (PDF)">
+        <img loading="lazy" src="doctor_portal/15_signed_report_p1.png" alt="Signed consultation report (PDF)">
+        <figcaption><span class="num">15</span>Signed consultation report (PDF)</figcaption>
+      </figure>
+    </div>
+  </section>
+  <section id="health_worker_app">
+    <h2>Health Worker app</h2>
+    <p class="desc">Clinical Diagnostic Suite (Windows desktop / Android) for frontline health workers.</p>
+    <div class="grid wide">
+      <figure class="card" data-src="health_worker_app/01_login.png" data-cap="Health Worker app: Sign in">
+        <img loading="lazy" src="health_worker_app/01_login.png" alt="Sign in">
+        <figcaption><span class="num">01</span>Sign in</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/02_complete_account.png" data-cap="Health Worker app: Complete your account">
+        <img loading="lazy" src="health_worker_app/02_complete_account.png" alt="Complete your account">
+        <figcaption><span class="num">02</span>Complete your account</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/03_patient_registry.png" data-cap="Health Worker app: Patient registry, today&#x27;s caseload">
+        <img loading="lazy" src="health_worker_app/03_patient_registry.png" alt="Patient registry, today&#x27;s caseload">
+        <figcaption><span class="num">03</span>Patient registry, today&#x27;s caseload</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/03b_patient_registry_bottom.png" data-cap="Health Worker app: Registry bottom: Add new patient">
+        <img loading="lazy" src="health_worker_app/03b_patient_registry_bottom.png" alt="Registry bottom: Add new patient">
+        <figcaption><span class="num">03b</span>Registry bottom: Add new patient</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/04_add_patient_form.png" data-cap="Health Worker app: Add new patient (with mobile)">
+        <img loading="lazy" src="health_worker_app/04_add_patient_form.png" alt="Add new patient (with mobile)">
+        <figcaption><span class="num">04</span>Add new patient (with mobile)</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/05_create_login_mobile.png" data-cap="Health Worker app: Create patient app login">
+        <img loading="lazy" src="health_worker_app/05_create_login_mobile.png" alt="Create patient app login">
+        <figcaption><span class="num">05</span>Create patient app login</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/06_login_one_time_password.png" data-cap="Health Worker app: One-time password (blurred)">
+        <img loading="lazy" src="health_worker_app/06_login_one_time_password.png" alt="One-time password (blurred)">
+        <figcaption><span class="num">06</span>One-time password (blurred)</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/07_approve_app_signup.png" data-cap="Health Worker app: Approve app sign-up by email">
+        <img loading="lazy" src="health_worker_app/07_approve_app_signup.png" alt="Approve app sign-up by email">
+        <figcaption><span class="num">07</span>Approve app sign-up by email</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/08_signup_approved.png" data-cap="Health Worker app: Sign-up approved">
+        <img loading="lazy" src="health_worker_app/08_signup_approved.png" alt="Sign-up approved">
+        <figcaption><span class="num">08</span>Sign-up approved</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/09_screening_session.png" data-cap="Health Worker app: Screening session: four steps">
+        <img loading="lazy" src="health_worker_app/09_screening_session.png" alt="Screening session: four steps">
+        <figcaption><span class="num">09</span>Screening session: four steps</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/10_foot_scan_live.png" data-cap="Health Worker app: Foot scan running (simulated probe)">
+        <img loading="lazy" src="health_worker_app/10_foot_scan_live.png" alt="Foot scan running (simulated probe)">
+        <figcaption><span class="num">10</span>Foot scan running (simulated probe)</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/10b_foot_scan_result.png" data-cap="Health Worker app: Foot scan result: tissue class, dT">
+        <img loading="lazy" src="health_worker_app/10b_foot_scan_result.png" alt="Foot scan result: tissue class, dT">
+        <figcaption><span class="num">10b</span>Foot scan result: tissue class, dT</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/11_vitals_and_fundus_import.png" data-cap="Health Worker app: Glucose/BP and fundus image import">
+        <img loading="lazy" src="health_worker_app/11_vitals_and_fundus_import.png" alt="Glucose/BP and fundus image import">
+        <figcaption><span class="num">11</span>Glucose/BP and fundus image import</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/12_history_charts.png" data-cap="Health Worker app: History: SWE, thermometry, glucose">
+        <img loading="lazy" src="health_worker_app/12_history_charts.png" alt="History: SWE, thermometry, glucose">
+        <figcaption><span class="num">12</span>History: SWE, thermometry, glucose</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/12b_history_dr_grade_sessions.png" data-cap="Health Worker app: History: DR grade, triage timeline, sessions">
+        <img loading="lazy" src="health_worker_app/12b_history_dr_grade_sessions.png" alt="History: DR grade, triage timeline, sessions">
+        <figcaption><span class="num">12b</span>History: DR grade, triage timeline, sessions</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/13_profile.png" data-cap="Health Worker app: Profile">
+        <img loading="lazy" src="health_worker_app/13_profile.png" alt="Profile">
+        <figcaption><span class="num">13</span>Profile</figcaption>
+      </figure>
+      <figure class="card" data-src="health_worker_app/14_settings.png" data-cap="Health Worker app: Settings: probe, reminders, sync">
+        <img loading="lazy" src="health_worker_app/14_settings.png" alt="Settings: probe, reminders, sync">
+        <figcaption><span class="num">14</span>Settings: probe, reminders, sync</figcaption>
+      </figure>
+    </div>
+  </section>
+  <section id="patient_app">
+    <h2>Patient app</h2>
+    <p class="desc">Health Companion (Android / iOS) for patients.</p>
+    <div class="grid phone">
+      <figure class="card" data-src="patient_app/01_sign_in.png" data-cap="Patient app: Sign in">
+        <img loading="lazy" src="patient_app/01_sign_in.png" alt="Sign in">
+        <figcaption><span class="num">01</span>Sign in</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/02_register.png" data-cap="Patient app: Create your account">
+        <img loading="lazy" src="patient_app/02_register.png" alt="Create your account">
+        <figcaption><span class="num">02</span>Create your account</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/03_pending_approval.png" data-cap="Patient app: Waiting for health-worker approval">
+        <img loading="lazy" src="patient_app/03_pending_approval.png" alt="Waiting for health-worker approval">
+        <figcaption><span class="num">03</span>Waiting for health-worker approval</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/04_complete_account.png" data-cap="Patient app: First sign-in: your details">
+        <img loading="lazy" src="patient_app/04_complete_account.png" alt="First sign-in: your details">
+        <figcaption><span class="num">04</span>First sign-in: your details</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/04b_complete_account_password.png" data-cap="Patient app: First sign-in: new password">
+        <img loading="lazy" src="patient_app/04b_complete_account_password.png" alt="First sign-in: new password">
+        <figcaption><span class="num">04b</span>First sign-in: new password</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/05_home.png" data-cap="Patient app: Home: monitoring cycle">
+        <img loading="lazy" src="patient_app/05_home.png" alt="Home: monitoring cycle">
+        <figcaption><span class="num">05</span>Home: monitoring cycle</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/05b_home_scrolled.png" data-cap="Patient app: Home: next consult, readings, diet">
+        <img loading="lazy" src="patient_app/05b_home_scrolled.png" alt="Home: next consult, readings, diet">
+        <figcaption><span class="num">05b</span>Home: next consult, readings, diet</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/06_readings.png" data-cap="Patient app: Readings: summary and glucose chart">
+        <img loading="lazy" src="patient_app/06_readings.png" alt="Readings: summary and glucose chart">
+        <figcaption><span class="num">06</span>Readings: summary and glucose chart</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/06b_readings_scrolled.png" data-cap="Patient app: Readings: time in range">
+        <img loading="lazy" src="patient_app/06b_readings_scrolled.png" alt="Readings: time in range">
+        <figcaption><span class="num">06b</span>Readings: time in range</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/06c_readings_history.png" data-cap="Patient app: Readings: BP and all readings">
+        <img loading="lazy" src="patient_app/06c_readings_history.png" alt="Readings: BP and all readings">
+        <figcaption><span class="num">06c</span>Readings: BP and all readings</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/07_record_reading.png" data-cap="Patient app: Record a reading">
+        <img loading="lazy" src="patient_app/07_record_reading.png" alt="Record a reading">
+        <figcaption><span class="num">07</span>Record a reading</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/08_consults.png" data-cap="Patient app: Consultations with prescription">
+        <img loading="lazy" src="patient_app/08_consults.png" alt="Consultations with prescription">
+        <figcaption><span class="num">08</span>Consultations with prescription</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/09_diet_plan.png" data-cap="Patient app: Diet plan: summary and targets">
+        <img loading="lazy" src="patient_app/09_diet_plan.png" alt="Diet plan: summary and targets">
+        <figcaption><span class="num">09</span>Diet plan: summary and targets</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/09b_diet_plan_meals.png" data-cap="Patient app: Diet plan: meals">
+        <img loading="lazy" src="patient_app/09b_diet_plan_meals.png" alt="Diet plan: meals">
+        <figcaption><span class="num">09b</span>Diet plan: meals</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/09c_diet_plan_prefer_avoid.png" data-cap="Patient app: Diet plan: prefer / avoid, notes">
+        <img loading="lazy" src="patient_app/09c_diet_plan_prefer_avoid.png" alt="Diet plan: prefer / avoid, notes">
+        <figcaption><span class="num">09c</span>Diet plan: prefer / avoid, notes</figcaption>
+      </figure>
+      <figure class="card" data-src="patient_app/10_profile.png" data-cap="Patient app: Profile">
+        <img loading="lazy" src="patient_app/10_profile.png" alt="Profile">
+        <figcaption><span class="num">10</span>Profile</figcaption>
+      </figure>
+    </div>
+  </section>
+<footer>Click any screenshot to enlarge. Use the arrow keys to move between screenshots and Esc to close.</footer>
+<div id="lb" role="dialog" aria-modal="true">
+  <button class="x" aria-label="Close">&times;</button>
+  <button class="prev" aria-label="Previous">&lsaquo;</button>
+  <button class="next" aria-label="Next">&rsaquo;</button>
+  <img alt=""><p></p>
+</div>
+<script>
+const cards=[...document.querySelectorAll('.card')], lb=document.getElementById('lb'), img=lb.querySelector('img'), cap=lb.querySelector('p');
+let i=0;
+function show(n){ i=(n+cards.length)%cards.length; img.src=cards[i].dataset.src; img.alt=cap.textContent=cards[i].dataset.cap; lb.classList.add('open'); }
+cards.forEach((c,n)=>c.addEventListener('click',()=>show(n)));
+lb.querySelector('.x').onclick=()=>lb.classList.remove('open');
+lb.querySelector('.prev').onclick=e=>{e.stopPropagation();show(i-1);};
+lb.querySelector('.next').onclick=e=>{e.stopPropagation();show(i+1);};
+lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
+document.addEventListener('keydown',e=>{ if(!lb.classList.contains('open'))return; if(e.key==='Escape')lb.classList.remove('open'); if(e.key==='ArrowLeft')show(i-1); if(e.key==='ArrowRight')show(i+1); });
+</script>
+</body>
+</html>

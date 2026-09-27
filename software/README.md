@@ -1,327 +1,239 @@
-# THISULINK — Frontline Dual-Modality Triage & Patient Companion App
+# THISULINK™ Client Architecture — Cross-Platform Flutter
 
-A cross-platform Flutter application for **patients living with diabetes** and the **community health workers** who support them — including ASHA workers, Village Health Nurses (VHN), ANMs, and CHOs. It interfaces with the **THISULINK Plantar SWE Probe** over BLE and the **Smartphone +20D Volk Retinal Adapter**, collects daily BP and glucose readings via AI reminders, and pushes validated records to a clinician portal for review.
-
-The app has two login roles:
-- **Patient** — takes daily vitals (BP, glucose), receives AI reminders, sees their own triage colour
-- **Health Worker** (ASHA / VHN / ANM / CHO) — gets alerted only when triage turns 🟠 Orange or 🔴 Red, can view patient history and relay to PHC
-
-Everything clinical is authenticated and decided on the server; the mobile handset acts as an instrument panel, telemetry display, and encrypted edge relay — never an unchecked diagnostic authority.
-
-| Specification | Implementation Details |
+| | |
 |---|---|
-| **Platform** | Flutter 3.19+ / Dart 3.3+ — Android & iOS (BLE & Camera), Web & Desktop (Clinician Portal) |
-| **State / Routing** | Riverpod 2, go_router 14 |
-| **Backend** | Single clinic-controlled Node/Express service reached over secure HTTPS |
-| **Database** | Embedded PocketBase (127.0.0.1:8090) shielded behind strict server policy layers |
-| **Visualization** | `fl_chart` (Longitudinal Plantar Modulus $E$, Thermal Asymmetry $\Delta T$, and Glycemic Trends) |
-| **Teleconsultation** | LiveKit (`livekit_client`) — End-to-end encrypted rooms with server-issued tokens |
-| **Notifications** | `flutter_local_notifications` + Android WorkManager polling (No third-party push clouds / FCM) |
-| **Primary Tabs** | Home (Cycle Ring) · Measure (SWE & Retinal) · History (Trends) · Assistant · Profile |
+| **Document** | SW-ARCH-001 |
+| **Scope** | All client applications — Android, iOS, Web |
+| **Source** | `thisulink_app/` (field client), `doctor_portal/` (web workstation) |
+| **Status** | Two of three clients shipped — see §8 |
 
 ---
 
-## 1. The Dual-Modality Pipeline at a Glance
+## 1. Client matrix
 
-Four clinical signals enter this system, four verified outputs emerge, and zero unauthenticated diagnostic conclusions are drawn on the mobile device:
+| Client | Role served | Platform | Specification |
+|---|---|---|---|
+| **Clinical Diagnostic Suite** | `health_worker` | Android tablet / phone | [daq-dashboard/](daq-dashboard/README.md) |
+| **Specialist Clinical Workstation** | `doctor`, `admin` | Web | [../doctor-portal/](../doctor-portal/README.md) |
+| **Patient Health Companion** | `patient` | Mobile / Web | [patient-app/](patient-app/README.md) |
 
-```mermaid
-flowchart LR
-  subgraph IN["DUAL-MODALITY FRONTLINE INPUT"]
-    A1["Plantar SWE Platform (ESP32-S3)<br/>Dual ADXL355 + Load Cell + MLX90621<br/>73-byte BLE Packet"]
-    A2["Smartphone +20D Volk Adapter<br/>High-Res Fundus Photography<br/>Edge Macula/Disc Quality Gate"]
-    A3["Patient & ASHA Typing<br/>Blood Glucose · Meal Context · Symptoms"]
-    A4["Clinic Tele-Health<br/>Appointments · Doctor Orders · AI Audits"]
-  end
-
-  subgraph APP["PATIENT / ASHA APP — Presentation & Buffering Only"]
-    B1["Parse & CRC-16 Check<br/>Live Preload & SWE Ring"]
-    B2["Retinal ROI Cropping<br/>Edge Quality Validation"]
-    B3["Encrypted Outbox<br/>Hardware Keystore Buffered"]
-  end
-
-  subgraph SRV["CLINICAL SERVER — The Sole Diagnostic Authority"]
-    C1["Re-verify CRC & Decompress"]
-    C2["1.50 N Contact Preload Gate<br/>[1.40 - 1.60 N Interlock]"]
-    C3["Dual-Modality Triage Engine<br/>Plantar E (kPa) + FIR ΔT (°C) + Retinal DR"]
-    C4["AI Vital Reminder Engine<br/>Daily BP + Glucose nudge<br/>Health Worker alert on Orange/Red"]
-    C5["Clinical AI: RAG → Safety → Doctor Routing"]
-  end
-
-  subgraph OUT["VERIFIED CLINICAL OUTPUT"]
-    D1["Home: Dual Triage Ring + Next Single Action"]
-    D2["History: Plantar Stiffness & Retinal Gallery"]
-    D3["Supervised AI Explanations (Clinician-Released)"]
-    D4["Secondary Specialist Tele-Consultation (LiveKit)"]
-  end
-
-  A1 --> B1 --> B3 --> C1 --> C2 --> C3 --> D1
-  A2 --> B2 --> B3 --> C1 --> C3 --> D2
-  A3 --> C4 --> D1
-  A4 --> D4
-  C3 --> D4
-  C5 --> D3
-```
-
-> **Core Architectural Rule**: The mobile application uploads raw encrypted bytes and re-reads the server's verdict. The phone parses sensor packets locally *strictly* to provide real-time UI feedback (such as the $1.50\text{ N}$ preload indicator and live waveform ring) and to trap corrupted frames before network dispatch. If client-side parsing ever disagrees with server-side validation, **the server always wins**.
+All three are Flutter. Sharing a language and widget layer across a tablet
+acquisition app and a desktop review workstation is only worthwhile because the
+**clinical logic** is shared — the triage rules, the packet contract, the unit
+conventions and the threshold constants exist once and are compiled into every
+client.
 
 ---
 
-## 2. Frontline Input Channels
+## 2. Layered architecture
 
-| Source | Telemetry / Payload | Entry Point |
-|---|---|---|
-| **Plantar Platform (BLE)** | `ScanPacket` — 73 bytes, little-endian, header `0xDA 0x7A`, CRC-CCITT over `[0, 71)` | `features/ble/platform_ble_service.dart` |
-| **Plantar Platform (Live)** | `StatusPacket` — Real-time contact preload ($1.50\text{ N}$ gate) streamed on secondary UUID | `features/scan/live_scan_controller.dart` |
-| **Retinal Module (Camera)** | High-resolution fundus image captured through +20D Volk optical adapter | `features/retina/retinal_capture_screen.dart` |
-| **Patient / ASHA** | Capillary blood glucose + unit (mg/dL or mmol/L) + meal timing | `features/glucose/glucose_entry_screen.dart` |
-| **Patient / ASHA** | Nutritional / meal logs (dietary photo or text entry) | `features/food/food_log_screen.dart` |
-| **Patient / ASHA** | Natural language triage inquiries and symptom questions | `features/ai/assistant_screen.dart` |
-| **Clinic Server** | Teleconsultation rooms, doctor prescription adjustments, released reports | Polled over HTTPS REST API |
+```
+  ┌─────────────────────────────────────────────────────────┐
+  │  PRESENTATION                                            │
+  │  Screens · charts · status badges · shimmer loaders      │
+  │  Role-specific shells, shared design system              │
+  └────────────────────────┬────────────────────────────────┘
+                           │ watches providers
+  ┌────────────────────────▼────────────────────────────────┐
+  │  STATE — Riverpod 2                                      │
+  │  AsyncNotifier · FutureProvider.family · overrides       │
+  └────────────────────────┬────────────────────────────────┘
+                           │ calls repositories
+  ┌────────────────────────▼────────────────────────────────┐
+  │  DOMAIN                                                  │
+  │  Triage engine · packet decoder · clinical constants     │
+  │  Pure, synchronous, fully unit-testable                  │
+  └────────────────────────┬────────────────────────────────┘
+                           │
+  ┌────────────────────────▼────────────────────────────────┐
+  │  DATA                                                    │
+  │  Repositories → local store ⇄ sync engine ⇄ PocketBase   │
+  └──────────┬──────────────────────────────┬───────────────┘
+             │                              │
+      ┌──────▼──────┐              ┌────────▼────────┐
+      │ Drift SQLite│              │  PocketBase SDK │
+      │ encrypted   │              │  REST + SSE     │
+      └─────────────┘              └─────────────────┘
+```
+
+The domain layer holds no I/O. The triage engine takes values and returns a
+tier; the packet decoder takes bytes and returns a reading or null. Both are
+exhaustively testable without a device, a network or a server — which is why
+they are the layers with test coverage.
 
 ---
 
-### The Plantar Platform BLE Packet Structure
+## 3. State management — Riverpod 2
 
-Authoritative protocol definition: `firmware/include/Packet.h`. Independent, matching codecs exist in C++ (ESP32-S3 firmware), TypeScript (Node.js server), and Dart (`features/scan/scan_packet_codec.dart`).
+| Pattern | Applied to |
+|---|---|
+| `AsyncNotifierProvider` | Authentication session, triage feed |
+| `FutureProvider.family` | Per-patient history, filtered rosters |
+| `Provider` | Repositories, clients, long-lived services |
+| `StreamProvider` | Sync status, realtime subscriptions |
+| Provider overrides | Demonstration mode, test doubles |
 
-```
-Offset   Field                       Description
-0        header[2] = 0xDA 0x7A       Magic synchronization bytes
-2        protocolVersion             Firmware wire protocol (v2.0)
-3        deviceId (u32)              Cryptographic hardware serial number
-7..9     firmware major/minor/patch  Active firmware build version
-10       timestampUnixSec (u32)      Internal RTC hardware timestamp
-14       batteryPercent              Li-ion battery fuel gauge level (%)
-15       contactPreloadN (f32)       Micro load-cell static contact force (Target: 1.50 N)
-19..38   Biomechanical Features:
-           - shearWaveSpeed_mps      Estimated phase velocity cs (m/s) across dx = 40 mm
-           - youngsModulus_kPa       Tissue elasticity E = 3 * rho * cs^2 (kPa)
-           - resonanceFrequency_Hz   Peak mechanical resonance fn (Hz)
-           - dampingRatio_zeta       Viscoelastic damping coefficient
-           - dynamicAmplitude_um     Contactor dynamic displacement (safe < 30 um)
-39..58   Optical & Thermal Features:
-           - redReflectance          Photoplethysmography (PPG) red channel
-           - irReflectance           Infrared tissue optical absorption
-           - perfusionIndex          Plantar microvascular pulsatile index
-           - thermalAsymmetry_degC   MLX90621 16x4 contralateral temperature difference (ΔT)
-           - maxPlantarTemp_degC     Peak localized plantar surface temperature
-63       ambientTemperatureC         Enclosure thermistor reading (environment reference)
-71       crc16                       CRC-CCITT checksum over bytes [0..70]
-```
+### Overrides as the demonstration mechanism
 
-### Offline First & Zero-Trust Buffer (`ScanOutbox`)
-In rural field camps lacking cellular connectivity, raw sensor packets are buffered without local interpretation. `ScanOutbox` (`services/local_storage/scan_outbox.dart`) seals the raw 73-byte payloads into the Android Keystore / iOS Keychain (`flutter_secure_storage`). When internet connectivity is restored, packets are uploaded in original sequence with cryptographic chain of custody preserved.
+Demonstration mode is a set of provider overrides applied at startup behind a
+compile-time flag. The demonstration repositories **subclass the production
+repositories** and override only the methods that would reach the network.
+
+Every screen, widget, chart and clinical rule beneath them is therefore the
+shipped code, not a parallel mock implementation. A demonstration exercises the
+real triage engine against seeded inputs; the only substituted component is the
+transport.
 
 ---
 
-## 3. End-to-End Processing & Clinical Governance
+## 4. Routing — GoRouter 14
 
-```mermaid
-sequenceDiagram
-    participant P as THISULINK Plantar Platform
-    participant R as +20D Volk Retinal Adapter
-    participant A as Mobile App (ASHA / Patient)
-    participant S as Clinic Node Server
-    participant D as Specialist Doctor Portal
+### Role-protected dispatch
 
-    P->>A: Stream real-time contact force (Target: 1.50 N)
-    A-->>A: Visual interlock indicator turns Green at 1.50 ± 0.10 N
-    P->>A: Execute 10-300 Hz VCA sweep & transmit ScanPacket (73 bytes)
-    R->>A: Capture 45° fundus photograph with LED illumination
-    A-->>A: Verify CRC-16 & retinal image focus on edge
-    A->>S: Transmit encrypted payloads over HTTPS
-    S-->>S: Enforce Contact Preload Gate (1.40 N <= F <= 1.60 N)
-    S-->>S: Calculate Multimodal Triage: E (kPa) + ΔT (°C) + Retinal Grade
-    S->>A: Store record, run AI reminder check, return triage colour
-    A-->>A: Render Green / Yellow / Orange / Red triage card
-    S->>D: Push elevated risk case to specialist review queue
+```
+   cold start
+       │
+       ▼
+   restore session from encrypted token store
+       │
+       ├── no valid session ──────────────► /login
+       │
+       ▼
+   read `role` from the authenticated record
+       │
+       ├── health_worker ──► /field/home    (Clinical Diagnostic Suite)
+       ├── doctor | admin ──► /queue        (Specialist Workstation)
+       ├── patient ────────► /companion     (Patient Health Companion)
+       └── absent | unknown ► /login + session cleared
 ```
 
-### 3.1 Validation Rules Enforced by the Server Authority
-| Parameter / Channel | Clinical Validity Range | Operational Rationale |
-|---|---|---|
-| **Contact Preload Gate** | $1.40\text{ N} - 1.60\text{ N}$ ($1.50\text{ N} \pm 0.10\text{ N}$) | Prevents hyperelastic tissue stiffening artifacts ($> 30\%$ error if unconstrained). |
-| **Optical Reflected Floor** | $\ge 0.010$ | Rejects lift-off, ambient light leakage, or non-contact scans. |
-| **Capillary Glucose Range** | $20 - 600\text{ mg/dL}$ | Standard physiological meter saturation boundaries. |
-| **Glucose Unit Conversion** | $\text{mmol/L} \times 18.0182 = \text{mg/dL}$ | Standardized to 1 decimal place across all database records. |
-| **Thermal Differential Bound**| $-5.0^\circ\text{C} \le \Delta T \le +10.0^\circ\text{C}$ | Rejects broken MLX90621 FIR pixel arrays or external heaters. |
-| **Backdating Timestamp** | $\le 7\text{ days}$ past | Prevents stale retrospective data corruption. |
-| **Clock Skew Threshold** | $\le 5\text{ minutes}$ future | Flags client device time manipulation. |
+### Unknown roles are refused, not defaulted
+
+A role the client does not recognise — absent, misspelled, or added to the
+backend after the client shipped — results in **sign-out**, never a fallback
+shell.
+
+Defaulting is the same class of error that produced a real PHI exposure in this
+platform's own backend: an exclusion rule admitted accounts whose role was
+undefined. A client that defaults an unknown role to the field shell would
+place an unrecognised account in front of a patient roster. Both layers now
+fail closed.
+
+Route guards re-evaluate on every navigation, not only at login. A session that
+is invalidated server-side while the application is open redirects on the next
+transition.
 
 ---
 
-### 3.2 AI-Driven Vital Reminder System
+## 5. Offline data engine
 
-ASHA workers, VHNs, and ANMs under India's NPCDCS programme visit diabetic patients **on a need basis only** — not on a fixed monthly or weekly schedule. There is no national mandate for regular home visits for every diabetic patient. THISULINK's AI reminder system bridges this gap by reminding the **patient** to take their own vitals daily, without depending on a health worker visit.
+The field client is built for a village with no signal. Connectivity is the
+exception path, not the assumption.
 
-#### How it works
-
-Every day, the app checks whether the patient has taken their BP and glucose reading. If not, a personalised local notification fires:
-
-| Vital | Reminder trigger | Example notification |
-|---|---|---|
-| **Blood Pressure** | No BP reading logged today | *"Good morning! Time to check your BP. Takes 2 minutes."* |
-| **Blood Glucose** | No glucose reading after meal | *"It's been 2 hrs since your meal. Record your glucose now."* |
-| **Foot Scan** | No SWE scan in last 3 days | *"Your foot scan is due. Connect the THISULINK probe."* |
-| **Missed day** | No activity for >26 hrs | *"We missed you yesterday. Tap to record today's vitals."* |
-
-If the patient does not acknowledge the reminder within **4 hours**, the linked **Health Worker** (ASHA / VHN / ANM / CHO) gets a relay alert on their own device.
-
-#### Community health worker ecosystem
-
-| Role | Full name | When they are alerted |
-|---|---|---|
-| **ASHA** | Accredited Social Health Activist | 🟠 Orange or 🔴 Red triage, or 4-hr unacknowledged reminder |
-| **VHN** | Village Health Nurse (Tamil Nadu) | 🟠 Orange or 🔴 Red — proactive doorstep visit |
-| **ANM** | Auxiliary Nurse Midwife | Sub-centre follow-up for flagged patients |
-| **CHO** | Community Health Officer | HWC clinical review for confirmed high-risk |
-
-> Health workers are **not notified for Green or Yellow** — this prevents alert fatigue and lets them focus on genuinely elevated-risk patients.
-
-#### Delivery architecture (no cloud dependency)
-
-```mermaid
-flowchart LR
-    A["WorkManager Poll\n(15-min floor, Android)"] --> B["Check: Last BP + Glucose\nTimestamp vs. Today"]
-    B --> C{Reading missing?}
-    C -- Yes --> D["Build Personalised\nReminder Payload"]
-    D --> E["flutter_local_notifications\n(No FCM, No Push Cloud)"]
-    E --> F["Patient Device\nNotification Tray"]
-    C -- No --> G["Sleep until\nnext poll"]
-    F --> H{Acknowledged\nwithin 4 hrs?}
-    H -- No --> I["Health Worker\nRelay Alert"]
-    H -- Yes --> G
+```
+     capture (sensor or manual entry)
+              │
+              ▼
+     ┌─────────────────────────────┐
+     │  Drift / SQLite, encrypted  │   ← durable HERE, before any network call
+     │  status = PENDING           │
+     └─────────────────────────────┘
+              │
+     ┌────────┴────────┐
+     ▼                 ▼
+  OFFLINE           ONLINE detected
+  stays queued      │
+  local triage      ▼
+  tier displayed   PUSH outbox → server
+                    │
+             ┌──────┴──────┐
+          success        failure
+             │              │
+        SYNCED +       backoff 2,4,8…60 min
+        server ids     (per-record, persisted)
+             │
+             ▼
+        PULL roster ← server-recomputed tiers
+        local cache invalidated
 ```
 
-- **No cloud dependency** — WorkManager (Android) + BGTaskScheduler (iOS). No Firebase, no FCM.
-- **Personalised timing** — AI adjusts reminder time based on the patient's historical measurement habits.
-- **Health worker relay** — unacknowledged reminders escalate to the linked ASHA / VHN automatically.
+### Push, then pull
 
+The pull phase runs **after** the push, so the tiers read back already reflect
+what was just uploaded. Without it, a health worker would continue to see the
+provisional tier their device computed offline, even after the server had
+authoritatively recomputed it.
+
+### Partial-failure resume
+
+A captured encounter fans out into up to three server collections. Each
+returned record id is written back to the local row as it lands, so a retry
+after a partial failure resumes rather than duplicating. A duplicated
+`plantar_swe_records` row is not a cosmetic defect — it is a second foot scan
+that never happened, entering the patient's clinical history.
+
+### Sync triggers
+
+| Trigger | Backoff |
+|---|---|
+| Connectivity transition to online | Ignored — the cause of failure has likely just cleared |
+| Background task, 15-minute cadence | Respected |
+| Application resumed to foreground | Respected |
+| Operator action — "Sync now" | Ignored — the operator has better information |
+
+Re-entrant calls do not stack. A sync requested while one is in flight is
+coalesced into a single follow-up run.
 
 ---
 
-### 3.3 Clinical AI Assistant & Supervised Routing
+## 6. Local persistence
 
-The integrated conversational AI model operates under strict clinical boundaries and cannot unilaterally present unverified medical guidance:
+| Property | Specification |
+|---|---|
+| Engine | Drift over SQLite |
+| Encryption | At rest, platform keystore |
+| Credentials | Platform secure storage, never in the database |
+| Schema versioning | Explicit, with migrations |
+| Cache tables | Rebuilt on migration |
+| **Outbox tables** | **Migrated in place, never dropped** |
 
-```mermaid
-flowchart TD
-    Q["Patient / ASHA Question"] --> R["Retrieve Context: Patient's SWE History, Retinal Grade & Labs"]
-    R --> L["LLM Engine: llama-3.3-70b-versatile via Groq"]
-    L --> S{"Clinical Safety Gate"}
-    S -->|"Hallucination, Medication Dosing, or Diagnosis Attempt"| M["Route to Mentor / Clinical Queue"]
-    S -->|"Symptom Severity Detected"| CAP{"Model Confidence >= 0.85?"}
-    CAP -->|Yes| DOC["Pending Supervising Doctor Approval"]
-    CAP -->|No| M
-    S -->|"General Diabetic Foot Care / Educational Advice"| C{"Confidence Score"}
-    C -->|">= 0.95"| V["Display Answer Immediately to Patient"]
-    C -->|"< 0.95"| DOC
-    DOC --> REL["Clinician Approves & Releases Answer"]
-    M --> REL
-```
+Cached server data may be rebuilt freely. The outbox holds captures that exist
+nowhere else in the world until they sync — those rows are migrated column by
+column, never recreated.
 
 ---
 
-## 4. Machine Learning & Biomechanical Analysis
+## 7. Configuration
 
-### 4.1 Historical Baseline Model Evaluation (`logreg-v1`)
-During initial feasibility prototyping, a baseline standardized logistic regression model (`logreg-v1`) was trained over 13 features across 3,000 synthetic patient samples (30.3% prevalence) to evaluate early handheld probe parameters.
+No client hardcodes an endpoint. All configuration resolves through
+environment files:
 
-#### Evaluation Metrics:
-| Metric | Baseline Value (`logreg-v1`) | Clinical Assessment |
-|---|---|---|
-| **ROC-AUC** | **0.650** | Above random chance (0.50), but insufficient for standalone clinical screening. |
-| **Overall Accuracy** | 0.612 | Moderate discriminatory capability on synthetic data. |
-| **Precision** | 0.406 | Elevated false positive rate (808 false alarms out of 2,090 normal cases). |
-| **Recall (Sensitivity)** | 0.608 | Misses approximately 39% of elevated risk cases. |
-| **Decision Threshold** | 0.50 | Optimal balance point along the precision-recall trade-off curve. |
+| Key | Purpose |
+|---|---|
+| `PB_BASE_URL` | Backend API gateway |
+| `PB_LAN_URL` | Field-camp fallback for deployments with no uplink |
+| `API_BASE_URL` | Inference and token services |
+| `LIVEKIT_URL` | Tele-consultation signalling |
 
-```
-Out-of-Fold Confusion Matrix (logreg-v1):
-                 Predicted Low Risk    Predicted Elevated Risk
-Actual Low Risk         1,282                   808
-Actual Elevated           357                   553
-```
-
-### 4.2 Key Findings from Feature Weight Analysis
-Inspection of standardized regression coefficients revealed critical insights that guided the design of the upgraded **THISULINK platform**:
-1. **Perfusion Dominance**: Optical perfusion index (−0.234) proved to be the most influential probe feature, demonstrating that microvascular blood flow strongly correlates with tissue viability.
-2. **Covariate Reliance**: Prior patient covariates (HbA1c +0.173, age +0.146, diabetes duration +0.119) heavily influenced the legacy model, indicating that single-point handheld mechanical contact failed to provide sufficient diagnostic signal.
-3. **Mechanical Channel Limitations in Early Probes**: Single-probe contact stiffness (+0.002) and vibration amplitude (−0.018) had near-zero weight because manual hand pressure introduced massive contact variability.
+A runtime toggle allows an operator to switch between the public gateway and a
+local server without rebuilding — the field-camp case, where a clinic runs its
+own backend on a laptop with no internet at all.
 
 ---
 
-### 4.3 The THISULINK Upgrade: Dual-Modality SWE + Thermal Fusion
-To resolve these historical limitations, **THISULINK** replaced single-point manual probing with:
-1. **Calibrated $1.50\text{ N}$ Static Preload Interlock**: Clamps tissue contact stiffness error to $<\pm 2.25\%$.
-2. **Dual-Pickup Shear Wave Phase Velocimetry ($c_s$)**: Directly extracts Young's modulus ($E = 3\rho c_s^2$) across $\Delta x = 40\text{ mm}$, providing $> 116\%$ velocity separation between healthy ($3.72\text{ m/s}$) and neuropathic ($8.05\text{ m/s}$) tissue.
-3. **MLX90621 Contralateral Thermal Differentials ($\Delta T \ge 2.2^\circ\text{C}$)**: Implements the gold-standard Armstrong-Lavery benchmark for acute neuro-inflammatory flares and Charcot detection.
+## 8. Implementation status
 
-#### Resulting Performance (`thisulink-v2` Triage Engine):
-- **Overall Multi-Class Diagnostic Accuracy**: **$94.2\%$**
-- **Acute Charcot / Severe Hyperemia Sensitivity**: **$100.0\%$** (Zero false negatives on emergency cases)
-- **Subclinical Tissue Stiffening Detection**: **$96.3\%$ Sensitivity**, **$92.5\%$ Specificity**
+| Component | Status |
+|---|---|
+| Domain layer — triage engine, packet decoder, constants | Implemented, **63 tests passing** |
+| Data layer — repositories, local store, sync engine | Implemented and unit-tested |
+| Authentication and role-protected routing | Implemented, verified against production |
+| Clinical Diagnostic Suite (Android) | Implemented, verified on device |
+| Specialist Clinical Workstation (Web) | **Live in production** |
+| Static analysis | Clean on both shipped clients |
+| **Patient Health Companion** | **Not implemented** |
+| iOS build | Configured, never built |
 
----
-
-## 5. Build, Installation & Deployment Guide
-
-### Prerequisites
-- Flutter SDK 3.19.0 or higher
-- Dart SDK 3.3.0 or higher
-- Android SDK 34 / Xcode 15+ (for physical BLE testing)
-- Node.js v18.x or v20.x LTS
-
-### 5.1 Clinic Backend Service
-```powershell
-# Navigate to the local backend service
-cd C:\tissue-matlab\software\backend
-npm install
-npm run build
-npm start          # Node/Express API on port 8787, PocketBase on port 8090
-```
-
-### 5.2 Flutter Mobile Client
-```powershell
-# Navigate to the Flutter mobile application workspace
-cd C:\tissue-matlab\software\mobile_app
-flutter pub get
-flutter analyze
-flutter test
-```
-
-### 5.3 Deploying to Physical Android / iOS Handset
-```powershell
-# Connect Android smartphone via USB with debugging enabled
-flutter devices
-
-# Run debug build pointing to local clinic server
-flutter run --dart-define=THISULINK_API_BASE=https://your-clinic-server.org
-
-# Build release APK for frontline field distribution
-flutter build apk --release --dart-define=THISULINK_API_BASE=https://your-clinic-server.org
-# Generated APK: build\app\outputs\flutter-apk\app-release.apk
-```
-
-> **Dynamic Server IP Override**: A dedicated IP/host configuration screen exists directly inside **Settings** on the mobile app. This allows field teams to repoint the app to a local laptop server running in offline rural health sub-centers without requiring codebase recompilation.
-
----
-
-## 6. Verification & Quality Assurance Suite
-
-| Test Suite | Scope & Coverage | Verification Objective |
-|---|---|---|
-| `test/codec_test.dart` | Wire Protocol & CRC-16 | Validates byte-for-byte parsing parity between ESP32 C++, Node.js, and Dart codecs. |
-| `test/preload_gate_test.dart` | Preload Interlock Logic | Confirms that scans outside $1.40 - 1.60\text{ N}$ trigger user adjustment prompts. |
-| `test/reminder_engine_test.dart` | AI Reminder Engine | Confirms daily BP + glucose reminder fires correctly and health worker relay triggers after 4 hrs. |
-| `test/triage_decision_test.dart`| Multimodal Stratification | Confirms 4-tier assignment (Green, Yellow, Orange, Red) against clinical ground truth. |
-| `test/security_storage_test.dart`| Keystore & Token Auth | Verifies that access/refresh tokens are stored strictly in OS-level encrypted storage. |
-
----
-
-## 7. SIH 2026 Grand Finale Architecture Compliance
-
-1. **Zero Black-Box Diagnostics**: Mobile application acts as a secure data collection and triage interface; all clinical risk classifications are calculated via transparent, formula-backed elastodynamics and validated thermal thresholds.
-2. **Resilient in Connectivity Deserts**: Automated offline buffering (`ScanOutbox`) guarantees uninterrupted frontline screening in remote tribal and rural areas.
-3. **Data Privacy & Tele-Health Ready**: Built-in LiveKit video consultations enable secondary podiatrists and ophthalmologists in district hospitals to review frontline ASHA scans within minutes.
+Two of the three clients are shipped. The Patient Health Companion is specified
+in [patient-app/README.md](patient-app/README.md); its backend role,
+authentication and longitudinal record already exist in production.

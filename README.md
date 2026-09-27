@@ -1,311 +1,292 @@
-# THISULINK — Multimodal Diabetic Complication Screening Platform
+# THISULINK™ — Enterprise Diabetic Complication Screening & Tele-Triage Platform
 
-<p align="center">
-  <img src="https://img.shields.io/badge/SIH%202026-%20-orange?style=for-the-badge" alt="SIH 2026"/>
-  <img src="https://img.shields.io/badge/Domain-MedTech%20%26%20BioTech-red?style=for-the-badge" alt="Domain"/>
-</p>
+THISULINK™ is a closed-loop clinical network for diabetic complication
+screening. It connects routine home monitoring, frontline point-of-care
+diagnostics and specialist tele-consultation into one continuous pathway, with
+an automated four-tier triage engine deciding where scarce clinical attention
+goes.
 
-<p align="center">
-  <b>AI-driven daily vital monitoring. Three modalities. One triage colour.</b><br/>
-  Designed for community health worker delivery in rural India.
-</p>
+The platform screens for the two complications that cause the most avoidable
+harm and are the least visible on examination: **diabetic foot ulceration**,
+detected through plantar shear-wave elastography and contralateral
+thermography, and **diabetic retinopathy**, detected through non-mydriatic
+fundus imaging with on-device AI grading.
 
----
-
-## What is THISULINK?
-
-THISULINK is a multimodal diabetic complication early-detection system built for **Smart India Hackathon 2026**. It addresses two of the most common — and most preventable — complications of diabetes:
-
-| Complication | Leading cause of | THISULINK detection method |
-|---|---|---|
-| **Diabetic foot / peripheral neuropathy** | Lower-limb amputation | Plantar shear-wave elastography (SWE) via custom VCA probe |
-| **Diabetic retinopathy** | Preventable blindness | AI fundus grading (EfficientNet-B0, APTOS 2019, AUC 0.976) |
-
-Both are screened continuously by the patient at home with daily AI reminders, supported by **Frontline Health Workers (VHN / ANM / CHO)** who are alerted only when triage turns Orange or Red. The system captures **blood pressure** and **blood glucose** from standard clinical monitors via seamless BLE sync. All data flows to a **4-tier triage engine** (🟢 Green / 🟡 Yellow / 🟠 Orange / 🔴 Red) running on a self-hosted PocketBase server at `thisulink.xyz`.
-
-> [!IMPORTANT]
-> All outputs are **research and screening-assistance results**. 
+**Status: deployed and operational**, with a hardened backend, verified
+role-based access control and an end-to-end validated triage loop.
 
 ---
 
-## Platform at a glance
+## 1. System architecture
 
 ```
-Patient (home — self-monitoring with AI daily reminders)
-│
-├─ Every day ──► AI reminder → BP & Glucose check (Standard COTS BLE Devices)
-│                ├─ Digital Oscillometric BP Monitor → SBP / DBP (BLE GATT Sync)
-│                └─ Standard Clinical Glucometer → Blood Glucose (mg/dL via BLE)
-│
-├─ When available ──► THISULINK Foot Probe (VCA + dual ADXL355 + thermometer)
-│                     ├─ 10–300 Hz sweep → c_s → E (kPa) → Tissue class A/B/C
-│                     └─ Contact thermometry → ΔT °C → flag if ≥ 2.2°C
-│
-├─ Periodic ──► Smartphone fundus photo → EfficientNet-B0 → DR grade 0–4
-│
-└─ All channels → BLE → Flutter app → PocketBase (thisulink.xyz)
-                                            │
-                               Triage engine (PocketBase JS hook)
-                                            │
-                    🟢 Green / 🟡 Yellow → patient self-manages
-                    🟠 Orange → Frontline Health Worker (VHN / ANM / CHO) alerted
-                    🔴 Red   → Health Worker + PHC Medical Officer alerted
+ ┌──────────────────────────── TIER 1 · HOME ───────────────────────────────┐
+ │  Patient Health Companion                                                │
+ │  COTS BP cuff (0x1810) · glucometer (0x1808) · adherence · AI diet       │
+ └────────────────────────────────┬─────────────────────────────────────────┘
+                                  │ daily vitals
+                                  ▼
+ ┌──────────────────────── TIER 2 · POINT OF CARE ──────────────────────────┐
+ │  Clinical Diagnostic Suite — community health worker                     │
+ │                                                                          │
+ │   Plantar probe (BLE 0xFFE0)        20D retinal adapter                  │
+ │   • VCA 10–300 Hz sweep             • non-mydriatic, 60 s                │
+ │   • dual ADXL355, Δx = 40 mm        • EfficientNet-B0 INT8 on-device     │
+ │   • TAL221 interlock 1.40–1.60 N    • ICDR grade 0–4                     │
+ │   • MLX90621 16×4 FIR, ΔT ≥ 2.2 °C                                       │
+ │                                                                          │
+ │   Offline-first · encrypted local store · queue and retry                │
+ └────────────────────────────────┬─────────────────────────────────────────┘
+                                  │ encounter upload
+                                  ▼
+ ┌──────────────────────── TIER 3 · CLOUD ENGINE ───────────────────────────┐
+ │  PocketBase enterprise core — https://pb.thisulink.xyz                   │
+ │                                                                          │
+ │   Authentication & zero-trust RBAC   Automated triage engine             │
+ │   Realtime event bus (SSE)           Immutable audit trail               │
+ │   Clinical file storage              Escalation dispatch                 │
+ └────────────────────────────────┬─────────────────────────────────────────┘
+                                  │ realtime, risk-ranked
+                                  ▼
+ ┌──────────────────────── TIER 4 · SPECIALIST ─────────────────────────────┐
+ │  Clinical Workstation — https://thisulink.xyz                            │
+ │                                                                          │
+ │   🔴 Critical → 🟠 Priority → 🟡 Moderate → 🟢 Stable                     │
+ │   Waveform & FFT review · fundus grading & override                      │
+ │   Signed prescriptions · diet approval · LiveKit consultation            │
+ └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Frontline Health Workers** (VHN / ANM / CHO) are alerted **only when triage turns Orange or Red**. No fixed visit schedule — visit happens when the data says it's needed.
-
-**AI reminder system** (no FCM): WorkManager + BGTaskScheduler check daily whether BP and glucose have been recorded. Unacknowledged reminders after 4 hours trigger a health worker relay alert.
-
-
----
-
-## Repository map
-
-| Folder | What it contains | Key file |
-|---|---|---|
-| [`platform matlab simulation and proofs/`](platform%20matlab%20simulation%20and%20proofs/) | 12 MATLAB simulation experiments proving SWE physics — Kelvin-Voigt model, dual-pickup phase delay, shear-wave dispersion, tremor suppression, 120-patient triage cohort | [`README.md`](platform%20matlab%20simulation%20and%20proofs/README.md) |
-| [`Clinical_Datasets_and_Parameter_Conversion/`](Clinical_Datasets_and_Parameter_Conversion/) | Literature provenance for all physical constants (ρ, c_s, ΔT threshold) and 5-step mechanical-to-clinical conversion pipeline | [`README.md`](Clinical_Datasets_and_Parameter_Conversion/README.md) |
-| [`retinal-screening/`](retinal-screening/) | EfficientNet-B0 retinal DR grading module — APTOS 2019 results, research protocol, evaluation contract, all figures | [`README.md`](retinal-screening/README.md) |
-| [`vitals-monitor/`](vitals-monitor/) | Standardized COTS BLE vitals integration — BLE GATT profile sync for standard digital BP monitors and glucometers | [`README.md`](vitals-monitor/README.md) |
-| [`hardware/`](hardware/) | THISULINK foot probe BOM and PCB spec — VCA actuator, dual ADXL355, HX711 load cell, contact thermometer, Velcro stabilisation | [`README.md`](hardware/README.md) |
-| [`firmware/`](firmware/) | ESP32-S3 + ADXL345 Arduino firmware POC — ring buffer, IIR biquad DSP, radix-2 FFT, feature extraction | [`README.md`](firmware/thisulink-esp32s3-adxl345/arduino/thisulink_firmware/README.md) |
-| [`software/`](software/) | Flutter app architecture — dual-role (Health Worker + Patient), BLE probe connect, AI vital reminder system, 5-tab shell | [`README.md`](software/README.md) |
-| [`backend/`](backend/) | Self-hosted infra — Cloudflare Tunnel + Tailscale + PocketBase + Node.js/Express — full deployment guide | [`README.md`](backend/README.md) |
+The loop closes: every reading triggers a server-side triage recomputation,
+which updates the patient's tier, writes an audit row, and — on escalation into
+a priority tier — dispatches an alert back to the health worker in the field.
 
 ---
 
-## Key Results & Verification Status
+## 2. Production endpoints
 
-### Retinal DR grading — EfficientNet-B0 on APTOS 2019 (677 held-out test images)
+| Endpoint | Serves | TLS | Status |
+|---|---|---|---|
+| **https://thisulink.xyz** | Specialist Clinical Workstation | Cloudflare edge | **200** |
+| **https://doctor.thisulink.xyz** | Workstation, named ingress | Cloudflare edge | **200** |
+| **https://pb.thisulink.xyz** | Backend REST + realtime gateway | Cloudflare edge | **200** |
+| `https://pb.thisulink.xyz/_/` | Administration console | — | **404 — blocked at edge** |
+| `http://<tailscale-ip>:8090/_/` | Administration console | Private mesh | Mesh only |
 
-> **Verification: Internal held-out benchmark** — images never seen during training or checkpoint selection. External dataset validation (IDRiD, Messidor-2) not yet done.
+### Edge security rules
 
-| Metric | Result | 95% CI |
-|---|---|---|
-| Quadratic weighted kappa | **0.860** | 0.828 – 0.888 |
-| 5-grade accuracy | **76.7%** | 73.6 – 79.6% |
-| Referable DR: ROC-AUC | **0.976** | — |
-| Referable DR: specificity | **96.3%** | 94.4 – 98.0% |
-| Calibration error (ECE) | **0.046** | — |
-
-### Plantar SWE — MATLAB simulation (12 experiments)
-
-> **Verification: MATLAB simulation** — Kelvin-Voigt viscoelastic model, not human-subject data. Physical repeatability and clinical comparison studies have not been conducted.
-
-| Result | Value | Experiment |
-|---|---|---|
-| Shear-wave speed reconstruction error | < 5% RMSE | Exp 10 |
-| Tissue class separation (A/B/C) | E: 43.5 / 96 / 204 kPa | Exp 02 |
-| Tremor attenuation (Velcro + flexure, 0–5 Hz) | ≥ 97.5% | Exp 11 |
-| 120-patient triage cohort (E + ΔT multimodal) | 4-tier classification | Exp 12 |
-
-### Hardware (THISULINK foot probe)
-
-> **Verification: Engineering specification** — design targets from BOM and firmware constants. Physical calibration and repeatability testing on the assembled probe are pre-registered targets, not completed measurements.
-
-| Parameter | Value |
+| Rule | Enforcement |
 |---|---|
-| VCA drive force | 0.100 N, 10–300 Hz sweep |
-| Load cell interlock | 1.40 – 1.60 N acceptance window |
-| Dual ADXL355 separation | Δx = 40 mm (x₁=105 mm, x₂=145 mm) |
-| Thermometry threshold | ΔT ≥ 2.2°C (Lavery et al., *Diabetes Care* 2007, PMID 17192326) |
+| `/_/*` returns 404 publicly | Reverse proxy at the origin |
+| `/api/admins` returns 404 publicly | Reverse proxy at the origin |
+| No inbound ports on the origin | Outbound-initiated Cloudflare tunnel |
+| Default-deny firewall | Mesh interface and SSH only |
+| Administration access | Private Tailscale mesh exclusively |
+
+Full topology and operations: **[backend/INFRASTRUCTURE.md](backend/INFRASTRUCTURE.md)**
 
 ---
 
-## Technology stack
+## 3. Access credentials
 
-| Layer | Technology |
-|---|---|
-| Mobile app | Flutter 3.19+, Riverpod 2, go_router 14, fl_chart |
-| BLE | flutter_blue_plus — 73-byte probe packet |
-| AI (retinal, on-device) | EfficientNet-B0 ONNX INT8 via onnxruntime-android |
-| Vitals Sync | Standard Bluetooth SIG Health Device Profiles (GATT: Blood Pressure 0x1810, Glucose 0x1808) |
-| AI (clinical assistant) | llama-3.3-70b-versatile via Groq (supervised routing) |
-| Backend | PocketBase (auth, DB, files, realtime, JS hooks) |
-| Infrastructure | Cloudflare Tunnel + Tailscale + Node.js/Express |
-| Notifications | WorkManager + BGTaskScheduler — no FCM, no push cloud |
-| Probe MCU | ESP32-S3 + dual ADXL355 + HX711 + VCA driver |
-| MATLAB simulation | 12 experiments, Kelvin-Voigt ODE, shear-wave propagation |
+| Role | Endpoint | Email | Password |
+|---|---|---|---|
+| **Physician** | https://thisulink.xyz | `doctor@thisulink.xyz` | `Doctor@Thisu2026` |
+| **Health worker** | Clinical Diagnostic Suite (Android) | `healthworker@thisulink.xyz` | `Worker@Thisu2026` |
+| **Patient** | Health Companion *(roadmap)* | `patient@thisulink.xyz` | `Patient@Thisu2026` |
+| **Administrator** | `http://<tailscale-ip>:8090/_/` | `admin@thisulink.xyz` | `AdminSecure#2026` |
+
+**Patient ABHA:** `9145-2388-9100-21`
+
+> The administration console is unreachable from the public internet by design.
+> Rotate every credential above before any deployment carrying real patient
+> data — they are published here for evaluation.
+
+### Verified access isolation
+
+| Account | patients | plantar | vitals | retinal |
+|---|---|---|---|---|
+| `doctor` | 4 | 24 | 24 | 4 |
+| `health_worker` | 4 | 24 | 24 | 4 |
+| **`patient`** | **0** | **0** | **0** | **0** |
 
 ---
 
-## Frontline health worker roles
+## 4. Documentation index
 
-India's NPCDCS programme does not mandate fixed monthly visits for every diabetic patient. THISULINK is designed around this reality — health workers are alerted **when the data demands it**, not on a calendar.
-
-| Role | Full name | Triggered when |
+| # | Document | Subsystem |
 |---|---|---|
-| **VHN** | Village Health Nurse (Tamil Nadu) | 🟠 Orange / 🔴 Red — doorstep visit |
-| **ANM** | Auxiliary Nurse Midwife | Sub-centre follow-up for flagged patients |
-| **CHO** | Community Health Officer | Health & Wellness Centre review |
-| **MO** | Medical Officer at PHC | 🔴 Red — emergency referral pathway |
+| 1 | **This file** | Master architecture & deployment directory |
+| 2 | [hardware/README.md](hardware/README.md) | Foot platform — actuator, interlock, sensor geometry, thermal array |
+| 3 | [hardware/BLE_SPECIFICATION.md](hardware/BLE_SPECIFICATION.md) | 73-byte telemetry contract, GATT profile, CRC |
+| 4 | [vitals-monitor/README.md](vitals-monitor/README.md) | COTS BLE vitals — `0x1810` / `0x1808` |
+| 5 | [retinal-screening/README.md](retinal-screening/README.md) | 20D adapter, quality gate, edge AI pipeline |
+| 6 | [software/README.md](software/README.md) | Cross-platform client architecture |
+| 7 | [software/daq-dashboard/README.md](software/daq-dashboard/README.md) | Frontline screening suite |
+| 8 | [software/patient-app/README.md](software/patient-app/README.md) | Patient companion & daily compliance |
+| 9 | [doctor-portal/README.md](doctor-portal/README.md) | Specialist workstation & triage workflows |
+| 10 | [backend/README.md](backend/README.md) | Schema, RBAC, event engine |
+| 11 | [backend/INFRASTRUCTURE.md](backend/INFRASTRUCTURE.md) | Tunnel, mesh, edge operations |
+| 12 | [prototype-outputs/README.md](prototype-outputs/README.md) | Screen-by-screen prototype outputs & verification gallery |
 
----
+### Specification ↔ source
 
-## Triage logic (PocketBase JS hook)
+The documentation tree is organised by **subsystem**; the source tree is
+organised by **build artefact**. They map as follows:
 
-| Colour | Condition |
+| Specification | Implementation |
 |---|---|
-| 🔴 Red | Tissue class C **or** (referable DR + grade ≥ 3) **or** glucose > 400 mg/dL **or** SBP > 180 |
-| 🟠 Orange | (Class B + ΔT ≥ 2.2°C) **or** referable DR **or** glucose > 300 **or** SBP > 140 |
-| 🟡 Yellow | Class B **or** ΔT ≥ 2.2°C **or** DR grade ≥ 2 **or** glucose > 180 **or** SBP > 130 |
-| 🟢 Green | None of the above |
+| `software/daq-dashboard/` | `thisulink_app` (Flutter, Android client) |
+| `doctor-portal/` | `doctor_portal` (Flutter, Web workstation) |
+| `backend/` | [`deploy/`](deploy/) — provisioning, schema, automation |
+| `hardware/`, `vitals-monitor/`, `retinal-screening/` | Hardware & clinical telemetry contracts |
 
 ---
 
-## Deployment
+## 5. Resolved specification conflicts
+
+Four conflicts across earlier drafts are closed. These resolutions are binding.
+
+| # | Conflict | Resolution |
+|---|---|---|
+| 1 | **BLE frame header** | **`0x5448`** (ASCII `"TH"`). The draft value `0xDA 0x7A` is **permanently deprecated** and must not appear in firmware, clients, fixtures or documentation. |
+| 2 | **Blood pressure sensing** | **COTS oscillometric devices** over Bluetooth SIG `0x1810`, ISO 81060-2 validated. The cuffless optical PPG model is **removed** — it has no accepted validation standard and fails by returning a plausible wrong number. |
+| 3 | **Thermal sensing** | **Melexis MLX90621**, 16 × 4 = 64-pixel FIR array. Alert on contralateral asymmetry **ΔT ≥ 2.2 °C** (Lavery et al., 2007). |
+| 4 | **Authorisation model** | **Explicit allowlist** on `@request.auth.role`. Negative exclusion rules are prohibited — see below. |
+
+### Why the authorisation model is a resolution, not a preference
+
+A negative exclusion (`role != "patient"`) evaluates **true** when `role` is
+absent. During production verification this admitted every authenticated
+account to every clinical collection, because a schema defect meant no account
+had a role at all. A patient account could read all 24 plantar records, 24
+vitals, 4 fundus evaluations and 8 triage results.
+
+An allowlist denies the same account. The two forms behave **oppositely**
+under exactly the condition nobody writes a test for. Full incident analysis:
+[backend/README.md §4.1](backend/README.md).
+
+---
+
+## 6. Clinical triage specification
+
+| Tier | Condition — first match wins | Action |
+|---|---|---|
+| 🔴 **RED** | Tissue class C, **or** P(referable) ≥ 0.50 with ICDR ≥ 3, **or** glucose > 400 mg/dL | Refer urgently |
+| 🟠 **ORANGE** | Class B with ΔT ≥ 2.2 °C, **or** P(referable) ≥ 0.50, **or** glucose > 300 | Escalate to specialist |
+| 🟡 **YELLOW** | Class B, **or** ΔT ≥ 2.2 °C, **or** ICDR ≥ 2, **or** glucose > 180 | Monitor, recheck next cycle |
+| 🟢 **GREEN** | None of the above | No action |
+
+### Clinical constants
+
+| Constant | Value | Governs |
+|---|---|---|
+| Preload interlock | **1.40 – 1.60 N** | Scan validity |
+| Thermal asymmetry alert | **ΔT ≥ 2.2 °C** | Ulcer-risk escalation |
+| Referable DR threshold | **P ≥ 0.50** | Retinal escalation |
+| Excitation sweep | **10 – 300 Hz** | Shear-wave acquisition |
+| Pickup baseline | **Δx = 40 mm** (x₁ 105 mm, x₂ 145 mm) | Phase velocity |
+| Screening cycle | **6 days** | Fundus on days 1 and 4 |
+| Relay escalation | **4 hours** | Unacknowledged priority tier |
+
+---
+
+## 7. Verification status
+
+### Verified against the live deployment
+
+| Check | Result |
+|---|---|
+| Static analysis — both shipped clients | Clean |
+| Automated tests — field client | **63 passing** |
+| Schema provisioning | 8 collections, rules confirmed in database |
+| **Role-based access isolation** | **Verified — patient sees zero clinical records** |
+| **Triage engine, end to end** | **Correct tier for every patient** |
+| **Escalation dispatch** | **Alert raised on tier entry with clinical reasoning** |
+| Administration console exposure | 404 public, mesh-only |
+| Public endpoints | 3 hostnames serving |
+
+### Verified tier assignment
+
+| Patient | Tissue | ΔT | Glucose | ICDR | Tier |
+|---|---|---|---|---|---|
+| Meena Devi | C | 2.7 °C | 262 | 4 | 🔴 RED |
+| Saravanan S | B | 2.4 °C | 216 | 2 | 🟠 ORANGE |
+| Ravi Kumar | B | 1.9 °C | 168 | 1 | 🟡 YELLOW |
+| Arjun Prakash | A | 1.2 °C | 138 | 0 | 🟢 GREEN |
+
+### Outstanding before clinical use
+
+| Item | Status |
+|---|---|
+| **Probe firmware validation** | Decoder byte-exact and tested; never run against physical hardware |
+| **Retinal model asset** | Inference pipeline implemented; trained INT8 model not bundled |
+| **Retinal image quality gate** | Not implemented — required before grading is trusted |
+| **Tele-consultation token service** | Not deployed; consultations cannot start |
+| **Patient Health Companion** | Not implemented; backend role and record are live |
+| **Database backups** | **Not configured** |
+| **Redundancy** | **Single node** |
+
+---
+
+## 8. Quickstart
+
+### Backend
 
 ```bash
-# Self-hosted on a Linux laptop, exposed via Cloudflare Tunnel
-# No cloud VM, no open ports, no static IP required
-
-# 1. PocketBase at thisulink.xyz (direct)
-# 2. Express API at api.thisulink.xyz (ONNX retinal grading)
-# 3. Tailscale for SSH and admin panel access
-
-# Health check
-curl https://api.thisulink.xyz/api/health
+curl -s https://pb.thisulink.xyz/api/health
+sudo systemctl status thisulink-pocketbase
 ```
 
-Full deployment guide → [`backend/README.md`](backend/README.md)
+### Specialist Clinical Workstation
 
----
-
-## Safety statement
-
-This system is a **research and screening-assistance prototype**. It is not a certified medical device. All outputs (triage colours, DR grades, BP estimates, glucose readings) are research results that a qualified clinician must review before any clinical decision is made. The platform is not approved by CDSCO, FDA, or CE for diagnostic use.
-
----
-
-## References
-
-| Reference | Used for |
-|---|---|
-| Lavery et al., *Diabetes Care* 2007, PMID 17192326 | Thermometry threshold ΔT ≥ 2.2°C (> 4°F) between contralateral plantar sites |
-| Raman et al., *Indian J Ophthalmol* 2021, PMC 7942107 | Referable DR = ICDR grade ≥ 2 (Indian consensus) |
-| APTOS 2019, Aravind Eye Hospital, Kaggle | Retinal training dataset (3,385 images) |
-| ADA Standards of Care, 2026 | Comprehensive glycemic and hypertension targets in diabetes care |
-| ISO 81060-2:2018 | Non-invasive sphygmomanometers — Clinical investigation of automated measurement type |
-| WHO South-East Asia DR Report | Rural screening motivation |
-
----
-
-## Prior-Art Differentiation
-
-### The Closest Prior Art: VIBRASENSE (Ayati Devices / BETiC, IIT Bombay)
-
-The most technically relevant Indian prior art is **VIBRASENSE**, developed at the Biomedical Engineering and Technology Incubation Centre (BETiC), IIT Bombay, commercialised by **Ayati Devices Pvt. Ltd.** (SINE incubatee), and CDSCO-approved. It addresses the same clinical problem — portable diabetic foot neuropathy screening in India.
-
-Understanding exactly how VIBRASENSE works is required to understand where THISULINK is technically different.
-
-#### What VIBRASENSE Does
-
-VIBRASENSE is a **quantitative sensory testing (QST) device** that measures **Vibration Perception Threshold (VPT)**:
-
-1. A 12 mm probe tip is placed on a single anatomical site (great toe, metatarsal head).
-2. The probe delivers a **single controlled sinusoidal vibration at a fixed frequency** (amplitude up to 6 µm displacement).
-3. The clinician increases amplitude until the patient reports feeling the vibration. That amplitude is the VPT in arbitrary units (Volts or microns).
-4. VPT is elevated when large-fibre sensory nerve axons are already lost — i.e., when **established peripheral neuropathy is present**.
-
-VIBRASENSE+T extends this by adding warm and cold temperature perception thresholds (small-fibre testing). Both versions depend on **patient self-report** of "I can feel it now".
-
-#### What THISULINK SWE Probe Does — and Why It Is Different
-
-THISULINK's plantar probe measures **tissue mechanical properties directly**, without relying on patient sensation reporting:
-
-1. A Voice Coil Actuator (VCA) drives a **broadband mechanical chirp (10–300 Hz, 200 ms)** — not a single frequency.
-2. Two ADXL355 accelerometers at x₁ = 105 mm and x₂ = 145 mm from the actuator record the **travelling shear wave's phase delay** as it propagates through plantar tissue.
-3. Shear-wave speed `c_s = 2πfΔx / Δφ(f)` is computed per frequency bin; Young's modulus is derived as `E = 3ρc_s²`.
-4. The tissue is classified as A / B / C based on the computed modulus — **no patient input required at any step**.
-
-| Technical property | VIBRASENSE (IITB/BETiC) | THISULINK SWE Probe |
-|---|---|---|
-| **Physical stimulus** | Single-frequency sinusoidal vibration (fixed freq.) | Broadband chirp 10–300 Hz (30 frequency bins) |
-| **Measured quantity** | Vibration perception threshold — patient self-report | Shear-wave phase velocity — accelerometer signal processing |
-| **What the output represents** | Nerve conduction function (large-fibre or small-fibre) | Tissue mechanical stiffness (Young's modulus E, shear-wave speed c_s) |
-| **Requires patient cooperation?** | ✅ Yes — patient must report sensation onset | ❌ No — fully objective, no patient input |
-| **Detects subclinical glycation stiffening (Class B)?** | ❌ No — VPT is normal until nerve fibres are lost | ✅ Yes — E rises from ~43.5 kPa (Class A) to ~96 kPa (Class B) before nerve loss (simulation-validated) |
-| **Thermal asymmetry channel** | ❌ None in VIBRASENSE; VIBRASENSE+T adds thermal QST (perception threshold only) | ✅ MLX90621 16×4 FIR array, 64 pixels, ΔT ≥ 2.2 °C flag (Lavery et al. 2004) |
-| **Propagation physics** | Forced vibration (standing-wave, single site) | Travelling shear wave (two-point phase-velocity measurement) |
-| **BOM cost estimate** | Commercial device, priced for clinic/hospital use | ₹12,000–₹18,000 (field-deployable BOM) |
-| **Regulatory status** | CDSCO-approved (Class B medical device) | Prototype — CDSCO submission not yet filed |
-
-#### The Core Technical Claim
-
-> VIBRASENSE answers: *"Have this patient's nerve fibres already been damaged?"*
->
-> THISULINK answers: *"Has this patient's plantar tissue already become pathologically stiff — before their nerve fibres are lost?"*
-
-These are **different questions at different stages of the disease trajectory**:
-
-```
-Healthy foot
-    │
-    ├─► Hyperglycaemia → non-enzymatic glycation → collagen cross-linking
-    │         │
-    │         ▼
-    │   Plantar tissue stiffens:  E: 43.5 kPa → 96 kPa  [THISULINK detects here — Class B]
-    │         │
-    │         ▼
-    │   Microvascular ischaemia → peripheral nerve axon loss
-    │         │
-    │         ▼
-    │   Vibration perception threshold rises  [VIBRASENSE / biothesiometer detects here]
-    │         │
-    │         ▼
-    │   Established peripheral neuropathy → ulcer risk
-    │         │
-    │         ▼
-    └─► Ulceration → amputation
+```bash
+cd doctor_portal
+flutter pub get && cp .env.example .env
+flutter run -d chrome --web-port=8080
+flutter build web --release
 ```
 
-THISULINK's Class B detection targets the **mechanically stiff, neurologically intact** phase — the window where glycation-driven stiffening can be flagged before large-fibre nerve damage is measurable. This mechanistic claim is derived from the tissue viscoelastic model in MATLAB Experiments 01–02 and requires human-subject clinical comparison against simultaneous biothesiometer VPT for validation.
+### Clinical Diagnostic Suite
 
-> [!IMPORTANT]
-> The subclinical detection claim (Class B preceding nerve-fibre loss) is **simulation-validated only**. Clinical confirmation via a head-to-head comparison with VIBRASENSE VPT and histological tissue sampling has not been performed. This is the highest-priority validation gap.
+```bash
+cd thisulink_app
+flutter pub get
+dart run build_runner build
+flutter run                           # live backend
+flutter run --dart-define=DEMO=true   # seeded, no backend required
+flutter test                          # 63 tests
+```
 
----
+### Provisioning a new node
 
-### Full Device Comparison Table
-
-| Device | Measuring method | Subclinical stiffness | Objective (no patient report) | Thermal channel | Digital/BLE output | India price |
-|---|---|---|---|---|---|---|
-| **Biothesiometer** | VPT, 128 Hz, single site | ❌ | ❌ | ❌ | ❌ | ₹10,500–40,000 |
-| **VIBRASENSE** (Ayati/IITB) | VPT, digital QST, 12 mm probe, single freq. | ❌ | ❌ (patient reports) | ❌ (VIBRASENSE+T adds thermal QST) | ✅ App + digital report | Commercial (clinic-priced) |
-| **Yostra NEURO TOUCH** | VPT + monofilament + pressure, automated | ❌ | Partially (auto sequence) | ❌ | ✅ | ₹60,000–₹1,20,000 |
-| **10 g Monofilament** | Pressure threshold | ❌ | ❌ | ❌ | ❌ | < ₹500 |
-| **THISULINK SWE Probe** | Broadband SWE, 10–300 Hz chirp, dual accelerometer | ✅ Class B (simulation) | ✅ Fully objective | ✅ 16×4 FIR array | ✅ BLE 5.0 | ₹12,000–18,000 |
-
-### Retinal Screening
-
-| Device / Service | Approach | Typical India access | Key limitation vs. THISULINK |
-|---|---|---|---|
-| **Remidio FOP (Fundus-on-Phone)** | Smartphone non-mydriatic fundus camera, grades by ophthalmologist telemedicine | ₹4,12,000 per unit | Hardware cost prohibitive for PHC; no AI on-device grading; no integration with foot/vitals data |
-| **Aravind / Sankara telemedicine** | Fundus photo → ophthalmologist grading | City-based hub and spoke | Rural patient must travel to hub; no field-worker deployment |
-| **THISULINK Retinal Module** | Smartphone + 20D adapter, EfficientNet-B0 AI grading (AUC 0.976 on APTOS 2019 test set), on-device ONNX INT8 offline | Smartphone + ₹500–₹1,200 lens adapter | AI-only (no ophthalmologist in loop at capture time); external validation pending |
-
-**Key differentiator**: Remidio FOP costs ₹4,12,000. THISULINK's retinal module uses the health worker's existing smartphone plus a low-cost 20D adapter and runs AI inference on-device when offline — reducing hardware cost by ~99 %. The trade-off is that AI grading replaces (but does not yet match) a trained ophthalmologist's reading at the point of care; a telemedicine ophthalmologist review is still required for Orange/Red triage cases.
-
-### Vitals Integration (Blood Pressure & Blood Glucose)
-
-Rather than attempting unvalidated custom cuffless optical BP or non-invasive glucose sensors that suffer from severe calibration drift and regulatory barriers, THISULINK interfaces directly with **standard, clinically validated Commercial Off-The-Shelf (COTS) devices** via Bluetooth Low Energy (BLE):
-
-| Measurement | Clinical Reference Device | BLE Integration Method | Clinical Advantage |
-|---|---|---|---|
-| **Blood Pressure** | Standard Digital Oscillometric Arm Cuff (e.g. Omron / A&D) | Standard Bluetooth SIG Blood Pressure Service (`0x1810`) | 100% clinically validated (ISO 81060-2 compliant), zero algorithmic drift |
-| **Blood Glucose** | Standard Clinical Glucometer (e.g. Accu-Chek / OneTouch BLE) | Standard Bluetooth SIG Glucose Service (`0x1808`) or BLE Bridge | Accurate capillary glucose reading conforming to ISO 15197 standards |
-
-This design isolates daily routine monitoring to gold-standard, regulatory-approved point-of-care hardware, directing THISULINK's novel hardware innovation where the true rural screening gaps lie: **plantar shear-wave elastography and automated non-mydriatic retinal screening.**
+```bash
+sudo ./deploy/bootstrap.sh --purge-existing --apply-ingress
+sudo ./deploy/finish.sh
+sudo ./deploy/seed.sh
+./deploy/verify.sh
+```
 
 ---
 
-## License
+## 9. Regulatory positioning
 
-MIT — see [`LICENSE`](LICENSE)
+THISULINK™ is **clinical decision support**. It stratifies risk and presents
+evidence; a licensed clinician makes every clinical decision. That boundary is
+enforced in the product — the intended-use notice is present on every page of
+the workstation, physician override supersedes every AI output, and no tier is
+communicated to a patient without a clinician.
+
+Documentation is structured for **IEC 62304** alignment: each subsystem carries
+a controlled specification, interfaces are contract-specified before
+implementation, and verification status is stated per component rather than in
+aggregate.
 
 ---
 
-<p align="center">
-  Built for <b>Smart India Hackathon 2026</b> — Healthcare &amp; BioMedical Track<br/>
-  <a href="https://thisulink.xyz">thisulink.xyz</a> · <a href="https://github.com/thisulink/thisulink">github.com/thisulink/thisulink</a>
-</p>
+<div align="center">
+
+**THISULINK™** · Clinical decision support for diabetic complication screening
+Screening outputs are authorised by a licensed clinician.
+
+</div>
