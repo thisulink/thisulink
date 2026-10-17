@@ -73,9 +73,11 @@ with a week of training produces the same numbers as a clinician.
 
 | Parameter | Value |
 |---|---|
-| Actuator type | Voice coil (VCA), direct-drive |
-| Sweep range | **10 – 300 Hz** |
-| Dynamic force | **0.100 N** |
+| Actuator type (Production) | Voice coil actuator (VCA), direct-drive (Ø20 × 25 mm) |
+| Actuator type (Prototype) | Precision Moving-Coil Electromagnetic Transducer (Bone Conduction / Audio Exciter 8Ω 1W) |
+| Driver stage | PAM8403 5V Class-D / MAX98357A I2S driver from ESP32 DAC |
+| Sweep range | **10 – 300 Hz** (supports extended characterization up to 500 Hz) |
+| Dynamic force | **0.100 N** (~100 mN peak) |
 | Sweep duration | 200 ms per acquisition |
 | Coupling | Medical-grade silicone pad |
 
@@ -85,7 +87,9 @@ the second pickup's signal-to-noise unusable across a 40 mm baseline.
 
 Dynamic force is held at 0.100 N — two orders below the static preload — so the
 excitation perturbs the tissue without changing the loading state being
-measured.
+measured. For lab and hackathon prototypes, an 8Ω 1W moving-coil transducer driven
+by a PAM8403 amplifier reproduces the exact same Lorenz force dynamics ($F = B \cdot I \cdot L$)
+at under ₹700, drastically improving feasibility while maintaining shear-wave fidelity.
 
 ---
 
@@ -246,3 +250,20 @@ The software half of this interface is complete and tested against the
 specification. The specification has not been confirmed against a physical
 probe. Section 8 of the BLE specification is the checklist that closes that
 gap, and it must be executed on-target before any clinical use.
+
+---
+
+## 10. Bill of Materials (BOM) & Component Costs
+
+A comprehensive, itemised component breakdown and sourcing specification is maintained in **[BOM.md](BOM.md)**.
+
+### Cost Summary Across Tiers:
+
+| Tier | Description | Target Cost |
+|---|---|---|
+| **Functional Lab Prototype** | Moving-coil transducer + PAM8403 + TAL221 + MLX90621 + ESP32-S3 | **₹4,850** |
+| **Production Hardware BOM** | Custom linear VCA + Dual ADXL355 + CNC brass base + Optics | **₹14,250** (Plantar) + **₹3,970** (Retinal) |
+| **Complete Turnkey Field Kit** | Dual hardware + 8" Android tablet + COTS BLE BP & Glucose + Carry case | **₹53,020** *(Strictly < ₹80,000 cap)* |
+
+> Detailed line-item breakdown with Indian suppliers, datasheets, and alternate parts: **[BOM.md](BOM.md)**.
+

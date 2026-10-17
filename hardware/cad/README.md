@@ -35,11 +35,14 @@ The plantar platform is engineered for point-of-care biomechanical and thermal s
 |---|---|---|---|
 | **Plantar Pressure Plate** | Copper Alloy | $r = 28\text{ mm}$, $h = 5\text{ mm}$, raised rim | Couples directly with the patient's plantar heel pad / metatarsal head through a medical-grade silicone interface pad. |
 | **Spiral Flexure Disc** | Beryllium Copper / Spring Steel | $r = 32\text{ mm}$, 8 concentric rings, $w = 1.5\text{ mm}$ | Constrains parasitic lateral wobble ($X/Y$), providing pure, frictionless linear translation strictly along the vertical ($Z$) axis. |
-| **Voice Coil Actuator (VCA)** | Direct-Drive Housed VCA | $\varnothing 20\text{ mm} \times 25\text{ mm}$, $10 - 300\text{ Hz}$ sweep | Delivers an uncalibrated low-force perturbation ($0.100\text{ N}$ dynamic force), launching pure surface shear waves into plantar soft tissue without causing hyperelastic stiffening artifacts. |
+| **Voice Coil Actuator (VCA)** | Direct-Drive Housed VCA (Production) / Moving-Coil Transducer (Prototype: 8Ω 1W) + PAM8403 Amp | $\varnothing 20\text{ mm} \times 25\text{ mm}$, $10 - 300\text{ Hz}$ (up to $500\text{ Hz}$) | Delivers an uncalibrated low-force perturbation ($0.100\text{ N}$ dynamic force), launching pure surface shear waves into plantar soft tissue without causing hyperelastic stiffening artifacts. Full BOM & alternatives: [../BOM.md](../BOM.md). |
 | **Preload Gate / Interlock** | TAL221 Cantilever + HX711 | $47 \times 12 \times 6\text{ mm}$, $1.40\text{ N} - 1.60\text{ N}$ valid window | Enforces uniform contact pressure prior to sweep initiation. Prevents user bias: sweeps automatically abort if preload wanders outside the $1.50 \pm 0.10\text{ N}$ gate. |
-| **Dual Pickups** | 2× ADXL355 Triaxial MEMS | LCC-14, $6.0 \times 6.0 \times 2.1\text{ mm}$, $25\ \mu\text{g}/\sqrt{\text{Hz}}$ | Positioned along a fixed, rigid baseline ($\Delta x = 40.0\text{ mm}$ with $x_1 = 105\text{ mm}$ and $x_2 = 145\text{ mm}$) to capture acoustic phase differences ($\Delta\phi$) with zero time-of-flight drift. |
+| **Dual Pickups** | 2× ADXL355 Triaxial MEMS (Production) / 2× ADXL345 (POC) | LCC-14, $6.0 \times 6.0 \times 2.1\text{ mm}$, $25\ \mu\text{g}/\sqrt{\text{Hz}}$ | Positioned along a fixed, rigid baseline ($\Delta x = 40.0\text{ mm}$ with $x_1 = 105\text{ mm}$ and $x_2 = 145\text{ mm}$) to capture acoustic phase differences ($\Delta\phi$) with zero time-of-flight drift. |
 | **Infrared Thermal Sensor** | Melexis MLX90621 | TO-39 can, $\varnothing 9.2\text{ mm}$, $16 \times 4$ FIR array | Non-contact thermal imaging capturing 64 pixels to identify localized pre-ulcerative inflammation ($\Delta T_{\text{contra}} \ge 2.2^\circ\text{C}$). |
 | **Structural Base & Damping** | C360 Machined Brass + 4× SBR Rubber Isolators | $190 \times 98 \times 16\text{ mm}$ brass block | Heavy inertial foundation isolating the sensitive pickups from floor and bench vibrations. |
+
+> Complete component pricing and sourcing: **[Bill of Materials (BOM.md)](../BOM.md)**.
+
 
 ---
 
