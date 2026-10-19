@@ -47,3 +47,8 @@ pb_migrations/
 *.asv
 *.m~
 *.mat~
+
+# Office temporary lock files & local procurement sheets
+~$*
+*.xlsx
+
