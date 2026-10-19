@@ -1,4 +1,4 @@
-# THISULINK™ Plantar Diagnostic Platform — Hardware Specification
+# THISULINK Plantar Diagnostic Platform — Hardware Specification
 
 | | |
 |---|---|
