@@ -1,4 +1,4 @@
-# THISULINK™ — Prototype Outputs (Screen-by-Screen Verification Guide)
+# THISULINK — Prototype Outputs (Screen-by-Screen Verification Guide)
 
 This directory documents the verified prototype outputs and screenshots across the complete THISULINK ecosystem: Doctor Portal (Web), Health Worker Clinical Diagnostic Suite (Windows/Desktop), and Patient Health Companion (Mobile). To browse them as an interactive visual gallery, open [`index.html`](index.html) in your browser.
 
