@@ -1,79 +1,79 @@
 # THISULINK — Review 1 Software Progress Report
-**What We Have Built & Completed So Far**
+**Team Logic Launchers | Project Status Update**
 
 ---
 
-## 1. Project Goal (In 1 Line)
-We are building a portable screening system for rural health workers to detect early diabetic foot ulcers and diabetic eye damage in under 3 minutes, connected directly to a doctor portal.
+## What We Set Out To Build
+We wanted to give visiting village health workers a fast, portable kit to check diabetic patients for both foot ulcers and retinal damage in under three minutes, while streaming that data straight to a hospital doctor.
+
+Here is what we have built, tested, and deployed on the software side so far.
 
 ---
 
-## 2. What Is Completed on the Software Side
-
-### 1. Doctor Portal (Web Workstation — Live)
-- **Live URL:** `https://thisulink.xyz`
-- **Patient Triage Queue:** Automatically sorts patients into 4 risk categories:
-  - 🔴 **Red:** Emergency / High risk
-  - 🟠 **Orange:** Urgent specialist check
-  - 🟡 **Yellow:** Moderate risk (monitor)
-  - 🟢 **Green:** Safe / Normal
-- **Eye Scan Review:** Doctor can see the patient's retinal photo, check the AI prediction, and confirm or change the final diagnosis.
-- **Video Consultation:** Built-in video calling so the doctor can talk to the patient and health worker directly from the browser.
-- **Digital Prescription:** Doctor types medicines and instructions, generating an official signed digital PDF report.
-- **AI Diet Verification:** Checks AI-generated diet plans before releasing them to the patient.
+## 1. Specialist Web Workstation (Doctor Portal)
+* **Where it runs:** Live on the web at `https://thisulink.xyz` (built with Flutter Web).
+* **Live Triage Queue:** The moment a field worker finishes a test, the patient appears in the doctor's queue sorted by risk:
+  - 🔴 **Red:** Severe risk / emergency flare. Needs immediate attention.
+  - 🟠 **Orange:** High risk. Tele-consult needed within 24 hours.
+  - 🟡 **Yellow:** Moderate stiffening. Monitor on regular cycles.
+  - 🟢 **Green:** Stable / healthy reading.
+* **Retinal Image Review:** The doctor can open the patient's fundus photo, see the on-device AI grade, inspect the vessels, and either confirm or override the diagnosis.
+* **Built-in Video Calls:** We integrated LiveKit WebRTC so the doctor can start a secure video call with the patient and field worker right inside the browser.
+* **Prescription & PDF Export:** The doctor adds medicines, dosage, and notes. The portal stamps a signed digital PDF report ready for printing or download.
+* **Diet Safety Check:** The doctor reviews AI-suggested meal plans before the patient can see them.
 
 ---
 
-### 2. Frontline Health Worker App (Windows & Android)
-- **Patient Management:** Add new patients, view patient history, and generate login passwords.
-- **Bluetooth Connection to Foot Probe:** 
-  - Connects wirelessly to our ESP32-S3 hardware probe.
-  - Live checks if the patient's foot pressure is correct (1.4 N to 1.6 N force interlock).
-  - Reads foot vibrations and infrared sole temperatures to find hidden hotspots.
-- **Vitals Capture:** Automatically syncs blood sugar and blood pressure from Bluetooth monitors.
-- **Retinal Image Upload:** Captures and uploads eye photos taken using our 20D phone lens attachment.
-- **Offline-First Mode:** Saves all tests locally on the device so it works without internet in remote villages, then auto-syncs when online.
+## 2. Frontline Health Worker App (Windows & Android)
+* **Patient Registration:** Workers can enroll new patients on the spot, pull up their past test history, and hand out one-time passwords for mobile access.
+* **Bluetooth Link to the Foot Probe:**
+  - Talks wirelessly to our ESP32-S3 over BLE (GATT 0xFFE0 / 0xFFE1).
+  - Enforces the 1.4 N to 1.6 N force window so readings are not ruined by uneven foot pressure.
+  - Pulls vibration waveforms and 64 infrared sole temperatures in real time.
+* **Sync with Commercial Vitals:** Automatically reads Bluetooth blood pressure cuffs and glucometers without manual typing.
+* **Retinal Camera Capture:** Guides the worker to snap clear fundus photos through our 20D lens attachment.
+* **Works Completely Offline:** In remote villages with zero network, the app writes everything to an encrypted local SQLite database and syncs automatically once back in cell range.
 
 ---
 
-### 3. Patient Mobile App
-- **Personal Dashboard:** Patients can log in to view their latest test results.
-- **Trends & Graphs:** Clear graphs showing sugar levels and blood pressure over time.
-- **Doctor's Diet Plan:** Easy-to-read daily breakfast, lunch, and dinner recommendations approved by their doctor.
-- **Video Call Lobby:** Patients can join scheduled tele-consultations with their doctor.
+## 3. Patient Mobile App (Health Companion)
+* **Simple Dashboard:** Patients log in with their phone number to see their latest checkup summary.
+* **Trend Graphs:** Visual curves showing whether fasting sugar and blood pressure are staying in the safe zone over weeks.
+* **Doctor-Approved Meals:** Shows customized breakfast, lunch, and dinner suggestions along with a list of foods to avoid.
+* **Video Call Lobby:** Patients can wait in a virtual room and join scheduled video follow-ups with one tap.
 
 ---
 
-### 4. Cloud Backend & Database (Live)
-- **Live Server:** `https://pb.thisulink.xyz`
-- **Security & Privacy:** Patients can only see their own records; doctors and health workers have protected medical access.
-- **Automatic Risk Scoring:** Whenever a new test is uploaded, the server automatically updates the patient's risk color (Red, Orange, Yellow, Green).
-- **Cloudflare Edge Security:** Server runs with full encryption and zero exposed ports to prevent cyber attacks.
+## 4. Backend Core & Cloud Services
+* **Live Server:** Running at `https://pb.thisulink.xyz` using PocketBase.
+* **Data Security & Privacy:** Strict role-based rules prevent patients from seeing anyone else's medical records.
+* **Automatic Risk Scoring:** Server-side hooks recalculate the patient's triage tier whenever a new reading lands.
+* **Cloudflare Security:** The server sits behind Cloudflare tunnels with zero open public ports to prevent unauthorized access.
 
 ---
 
-### 5. AI & Data Pipeline
-- **Retinal AI Model:** Uses an EfficientNet model that runs on the phone without internet to grade diabetic eye disease (Grades 0 to 4) in under 2 seconds.
-- **Anti-Glare Filter:** Detects flash reflections in eye photos to make sure the photo is clear before grading.
-- **Diet Planner AI:** Converts doctor notes into a customized meal plan, scoring it for medical safety before sending it for review.
+## 5. Machine Learning & Telemetry
+* **On-Device Eye Model:** We quantized an EfficientNet model down to INT8 so it runs directly on a phone in under 2 seconds without requiring an internet connection.
+* **Glare Check:** We added an image filter that spots corneal light reflections and tells the worker to adjust the angle before grading.
+* **Diet Engine:** Runs through Groq Llama-3.3-70B to turn doctor notes into regional meal plans, applying safety rule checks before doctor review.
 
 ---
 
-## 3. Current Status Summary
+## Current Work Summary
 
-| Component | What Is Done | Current Status |
+| Subsystem | What We Completed | Current Status |
 |---|---|---|
-| **Doctor Portal** | Login, Triage Dashboard, Video Call, Prescription, PDF Export | **100% Live & Working** |
-| **Health Worker App** | Patient Registration, Bluetooth Probe Sync, Offline Storage | **100% Tested (63 tests passing)** |
-| **Patient App** | View Vitals, Trend Charts, Doctor Diet, Video Consult | **Completed UI & Workflows** |
-| **Backend & Cloud** | Database, Role Security, Triage Triggers, Live Server | **100% Live & Operational** |
-| **Edge AI** | Offline Retinal Model (EfficientNet), Glare Filter | **Completed & Benchmarked** |
-| **Documentation & Proofs**| 45+ UI Screenshots gallery on GitHub + MATLAB simulation plots | **100% Pushed to GitHub** |
+| **Doctor Portal** | Live triage dashboard, retinal review, LiveKit video calls, e-prescriptions | **100% Deployed & Live** |
+| **Health Worker App** | BLE foot probe telemetry, preload interlock, vitals sync, offline SQLite | **100% Tested (63 tests passing)** |
+| **Patient App** | Sugar/BP trends, diet plan viewer, video lobby | **UI & flows verified** |
+| **Backend Core** | PocketBase API, role-based security, automated triage hooks | **100% Live & Operational** |
+| **Edge AI** | Offline 5-class retinal grading model + glare detection | **Benchmarked on phone** |
+| **Verification** | 45+ UI screenshots on GitHub + 12 MATLAB simulation tests | **Pushed to GitHub** |
 
 ---
 
-## 4. Live Verification Links
-- **Doctor Portal (Live):** https://thisulink.xyz
-- **Backend API (Live):** https://pb.thisulink.xyz/api/health
-- **GitHub Repository:** https://github.com/thisulink/thisulink
-- **Screenshot Proofs:** https://github.com/thisulink/thisulink/tree/main/prototype-outputs
+## Verified Links
+* **Doctor Portal:** https://thisulink.xyz
+* **Backend API:** https://pb.thisulink.xyz/api/health
+* **GitHub Repository:** https://github.com/thisulink/thisulink
+* **UI Screenshot Gallery:** https://github.com/thisulink/thisulink/tree/main/prototype-outputs
