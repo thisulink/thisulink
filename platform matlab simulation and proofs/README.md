@@ -1,6 +1,5 @@
 # THISULINK: Plantar Biomechanical SWE Platform — MATLAB Simulation Suite & Engineering Proofs
 
-[![SIH 2026 Grand Finale](https://img.shields.io/badge/SIH%202026-Grand%20Finale-green.svg)](https://github.com/thisulink/thisulink)
 [![MATLAB Simulation](https://img.shields.io/badge/MATLAB-R2020a--R2024b-blue.svg)](https://github.com/thisulink/thisulink)
 [![Modelled Hardware](https://img.shields.io/badge/Modelled%20Hardware-Dual%20ADXL355%20%7C%20VCA%20%7C%20HX711-orange.svg)](https://github.com/thisulink/thisulink)
 [![Clinical Focus](https://img.shields.io/badge/Clinical-Diabetic%20Neuropathy%20Triage-red.svg)](https://github.com/thisulink/thisulink)
